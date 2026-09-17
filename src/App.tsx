@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { RepoState } from "./engine/types";
 import { runCommand } from "./engine/commands";
-import { CHALLENGES } from "./data/challenges";
+import { CHALLENGES, TRILHAS_ORDER } from "./data/challenges";
 import Terminal from "./components/Terminal";
 import Graph from "./components/Graph";
 import Dictionary from "./components/Dictionary";
 import ChallengePanel from "./components/ChallengePanel";
+import ChallengeNav from "./components/ChallengeNav";
 import "./App.css";
 
 interface LogLine {
@@ -16,6 +17,7 @@ interface LogLine {
 const PROGRESS_KEY = "gitdojo_challenge_id";
 const LEGACY_PROGRESS_KEY = "gitdojo_challenge_index";
 const UNLOCKED_KEY = "gitdojo_unlocked_commands";
+const SOLVED_KEY = "gitdojo_solved_challenges";
 
 /**
  * Ordem dos desafios antes de 'git merge' entrar na trilha Branching. Versões
@@ -64,6 +66,16 @@ function loadUnlocked(): Set<string> {
   }
 }
 
+function loadSolved(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SOLVED_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
 export default function App() {
   const [challengeIndex, setChallengeIndex] = useState(loadProgress);
   const challenge = CHALLENGES[challengeIndex];
@@ -72,6 +84,7 @@ export default function App() {
   const [log, setLog] = useState<LogLine[]>([]);
   const [showHint, setShowHint] = useState(false);
   const [unlocked, setUnlocked] = useState<Set<string>>(loadUnlocked);
+  const [solvedIds, setSolvedIds] = useState<Set<string>>(loadSolved);
   const [terminalOpen, setTerminalOpen] = useState(false);
 
   useEffect(() => {
@@ -93,6 +106,20 @@ export default function App() {
 
   const solved = challenge.goal(repoState);
 
+  function markSolved(id: string) {
+    setSolvedIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        localStorage.setItem(SOLVED_KEY, JSON.stringify([...next]));
+      } catch {
+        // idem: a marcação de resolvido não sobrevive ao reload sem localStorage.
+      }
+      return next;
+    });
+  }
+
   function handleRun(command: string) {
     const result = runCommand(command, repoState);
     setRepoState(result.state);
@@ -104,6 +131,9 @@ export default function App() {
         return next;
       });
     }
+    if (challenge.goal(result.state)) {
+      markSolved(challenge.id);
+    }
     return { ok: result.ok, output: result.output };
   }
 
@@ -113,10 +143,13 @@ export default function App() {
     setShowHint(false);
   }
 
+  function goToChallenge(index: number) {
+    setChallengeIndex(index);
+    resetChallenge(index);
+  }
+
   function handleNext() {
-    const nextIndex = Math.min(challengeIndex + 1, CHALLENGES.length - 1);
-    setChallengeIndex(nextIndex);
-    resetChallenge(nextIndex);
+    goToChallenge(Math.min(challengeIndex + 1, CHALLENGES.length - 1));
   }
 
   function handleReset() {
@@ -129,6 +162,14 @@ export default function App() {
         <h1>🥋 Git Dojo</h1>
         <p>Aprenda comandos git praticando — e monte seu próprio dicionário.</p>
       </header>
+
+      <ChallengeNav
+        challenges={CHALLENGES}
+        trilhasOrder={TRILHAS_ORDER}
+        currentId={challenge.id}
+        solvedIds={solvedIds}
+        onSelect={goToChallenge}
+      />
 
       <ChallengePanel
         challenge={challenge}
