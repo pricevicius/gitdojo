@@ -11,7 +11,7 @@ export interface Challenge {
   goal: (state: RepoState) => boolean;
 }
 
-const TRILHAS_ORDER = ["Fundamentos", "Branching", "Tags"] as const;
+const TRILHAS_ORDER = ["Fundamentos", "Branching", "Tags", "Desfazer"] as const;
 export { TRILHAS_ORDER };
 
 function baseInitialized(): RepoState {
@@ -86,6 +86,13 @@ function withDivergedBranches(): RepoState {
   };
   s.branches["main"] = "c2";
   s.branches["feature-login"] = "c3";
+  return s;
+}
+
+/** Dois commits, mais um arquivo staged que não veio de nenhum dos dois. */
+function withTwoCommitsAndStaged(fileName = "extra.txt"): RepoState {
+  const s = withTwoCommits();
+  s.staged.push(fileName);
   return s;
 }
 
@@ -227,5 +234,77 @@ export const CHALLENGES: Challenge[] = [
     hint: "A tag do desafio anterior era 'leve' — só um nome. Para guardar também mensagem e autor, existe uma flag que a torna 'anotada'. Que letra representa isso, e qual outra flag (a mesma do commit) carrega a mensagem?",
     setup: () => withTwoCommits(),
     goal: (s) => s.tags["v2.0.0"]?.annotated === true,
+  },
+  {
+    id: "restore-1",
+    trilha: "Desfazer",
+    title: "Descarte uma alteração",
+    description:
+      "Você editou 'index.js' por engano e quer voltar ao que estava no último commit, sem preparar nada. Descarte a alteração na área de trabalho.",
+    hint: "Você quer 'devolver' o arquivo ao estado anterior na área de trabalho, sem tocar na staging area. Qual subcomando restaura um arquivo, seguido do nome dele?",
+    setup: () => withOneChange("index.js"),
+    goal: (s) => !s.workingChanges.includes("index.js"),
+  },
+  {
+    id: "restore-staged-1",
+    trilha: "Desfazer",
+    title: "Tire da staging area sem perder a alteração",
+    description:
+      "Você preparou 'index.js' cedo demais. Tire-o da staging area, mas sem descartar a alteração — ela deve voltar para a área de trabalho.",
+    hint: "É o mesmo subcomando do desafio anterior, mas agora você não quer descartar a alteração, só desfazer o 'add'. Que flag existe para isso?",
+    setup: () => {
+      const s = baseInitialized();
+      s.staged.push("index.js");
+      return s;
+    },
+    goal: (s) => s.workingChanges.includes("index.js") && !s.staged.includes("index.js"),
+  },
+  {
+    id: "reset-soft-1",
+    trilha: "Desfazer",
+    title: "Desfaça o commit, mantendo tudo preparado",
+    description:
+      "Você commitou, mas também tinha 'extra.txt' já preparado (staged) para entrar num commit futuro. Desfaça o último commit sem perder o que já estava preparado.",
+    hint: "Existe um subcomando que move o ponteiro da branch para trás no histórico. Ele tem uma variante que só mexe em qual commit a branch aponta, sem tocar em staging nem na área de trabalho — qual flag representa essa variante 'suave'?",
+    setup: () => withTwoCommitsAndStaged(),
+    goal: (s) => s.branches["main"] === "c1" && s.staged.includes("extra.txt"),
+  },
+  {
+    id: "reset-mixed-1",
+    trilha: "Desfazer",
+    title: "Desfaça o commit e também a preparação",
+    description:
+      "Mesma situação: um commit feito e 'extra.txt' já preparado. Desta vez, desfaça o commit E tire 'extra.txt' da staging area — a alteração deve continuar existindo, só não preparada.",
+    hint: "É o mesmo subcomando do desafio anterior. Esse é o comportamento padrão dele quando nenhuma flag de variante é passada — qual o nome dessa variante 'do meio'?",
+    setup: () => withTwoCommitsAndStaged(),
+    goal: (s) =>
+      s.branches["main"] === "c1" &&
+      s.workingChanges.includes("extra.txt") &&
+      !s.staged.includes("extra.txt"),
+  },
+  {
+    id: "reset-hard-1",
+    trilha: "Desfazer",
+    title: "Desfaça tudo, sem dó",
+    description:
+      "Mesma situação de novo. Desta vez você tem certeza: quer desfazer o commit e descartar completamente tudo que estava preparado ou modificado, sem guardar nada.",
+    hint: "Mesmo subcomando, terceira variante — a mais destrutiva das três, que não deixa nada preparado nem modificado para trás. Qual flag representa 'sem piedade'?",
+    setup: () => withTwoCommitsAndStaged(),
+    goal: (s) =>
+      s.branches["main"] === "c1" && s.staged.length === 0 && s.workingChanges.length === 0,
+  },
+  {
+    id: "revert-1",
+    trilha: "Desfazer",
+    title: "Desfaça um commit sem reescrever o histórico",
+    description:
+      "O commit 'c2' quebrou algo em produção, mas você não pode reescrever o histórico (outras pessoas já usam esses commits). Desfaça o efeito de 'c2' criando um commit novo.",
+    hint: "Diferente do subcomando das últimas três etapas (que move o ponteiro para trás), esse cria um commit novo que aplica o efeito contrário do commit indicado. Qual é, seguido do id do commit?",
+    setup: () => withTwoCommits(),
+    goal: (s) => {
+      const tip = s.branches["main"];
+      const c = tip ? s.commits[tip] : null;
+      return !!c && c.message.startsWith("Revert") && c.parentIds[0] === "c2";
+    },
   },
 ];

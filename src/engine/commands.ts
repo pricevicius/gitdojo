@@ -70,6 +70,12 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
         return handleMerge(tokens, state);
       case "tag":
         return handleTag(tokens, state);
+      case "restore":
+        return handleRestore(tokens, state);
+      case "reset":
+        return handleReset(tokens, state);
+      case "revert":
+        return handleRevert(tokens, state);
       default:
         return fail(state, `git: '${sub}' não é um comando suportado neste simulador ainda.`);
     }
@@ -433,4 +439,106 @@ function handleTag(tokens: string[], state: RepoState): CommandResult {
   if (name in state.tags) return fail(state, `fatal: tag '${name}' already exists`);
   state.tags[name] = { commit: cur, annotated: false };
   return ok(state, [], "git tag");
+}
+
+function handleRestore(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const staged = tokens.includes("--staged");
+  const arg = tokens.slice(2).find((t) => !t.startsWith("-"));
+  if (!arg) return fail(state, "especifique o arquivo (ex: git restore index.js)");
+
+  if (staged) {
+    const i = state.staged.indexOf(arg);
+    if (i === -1) {
+      return fail(state, `error: pathspec '${arg}' did not match any file(s) known to git`);
+    }
+    state.staged.splice(i, 1);
+    state.workingChanges.push(arg);
+    return ok(state, [], "git restore --staged");
+  }
+
+  const i = state.workingChanges.indexOf(arg);
+  if (i === -1) {
+    return fail(state, `error: pathspec '${arg}' did not match any file(s) known to git`);
+  }
+  state.workingChanges.splice(i, 1);
+  return ok(state, [], "git restore");
+}
+
+/** Resolve o alvo de `git reset` (id de commit ou HEAD~N) a partir dos tokens. */
+function resetTargetCommit(state: RepoState, tokens: string[]): string | null {
+  const arg = tokens.slice(2).find((t) => !t.startsWith("-"));
+  if (!arg) return null;
+  if (arg in state.commits) return arg;
+  if (arg === "HEAD") return currentCommit(state);
+
+  const m = arg.match(/^HEAD~(\d+)$/);
+  if (!m) return null;
+  let cursor = currentCommit(state);
+  let steps = parseInt(m[1], 10);
+  while (steps > 0 && cursor) {
+    cursor = state.commits[cursor]?.parentIds[0] ?? null;
+    steps -= 1;
+  }
+  return cursor;
+}
+
+function handleReset(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (state.head.type === "detached") {
+    return fail(state, "não é possível fazer reset de branch em HEAD destacado neste tutorial (faça checkout de uma branch)");
+  }
+
+  const target = resetTargetCommit(state, tokens);
+  if (!target) {
+    return fail(state, "fatal: ambiguous argument: unknown revision or path not in the working tree.");
+  }
+
+  const mode = tokens.includes("--hard") ? "hard" : tokens.includes("--soft") ? "soft" : "mixed";
+  state.branches[state.head.name] = target;
+
+  if (mode === "mixed") {
+    state.workingChanges = [...state.workingChanges, ...state.staged];
+    state.staged = [];
+  } else if (mode === "hard") {
+    state.staged = [];
+    state.workingChanges = [];
+  }
+  // --soft: staged e workingChanges continuam como estavam.
+
+  return ok(state, [`HEAD is now at ${target.slice(0, 7)}`], `git reset --${mode}`);
+}
+
+function handleRevert(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (state.head.type === "detached") {
+    return fail(state, "não é possível reverter em HEAD destacado neste tutorial (faça checkout de uma branch)");
+  }
+
+  const targetId = tokens[2];
+  if (!targetId) return fail(state, "especifique o commit a reverter (ex: git revert c2)");
+  const target = state.commits[targetId];
+  if (!target) return fail(state, `fatal: bad revision '${targetId}'`);
+
+  const cur = currentCommit(state);
+  if (!cur) return fail(state, "fatal: your current branch does not have any commits yet");
+
+  state.commitCounter += 1;
+  const id = `c${state.commitCounter}`;
+  const message = `Revert "${target.message}"`;
+  state.commits[id] = {
+    id,
+    parentIds: [cur],
+    message,
+    createdOnBranch: state.head.name,
+  };
+  state.branches[state.head.name] = id;
+
+  return ok(state, [`[${state.head.name} ${id}] ${message}`], "git revert");
 }

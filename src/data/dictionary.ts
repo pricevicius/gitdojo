@@ -91,6 +91,42 @@ export const DICTIONARY: Record<string, DictionaryEntry> = {
     short: "Cria uma tag anotada: guarda autor, data e mensagem — recomendada para releases.",
     example: 'git tag -a v1.0.0 -m "primeira versão estável"',
   },
+  "git restore": {
+    command: "git restore <arquivo>",
+    category: "Desfazer",
+    short: "Descarta a alteração de um arquivo na área de trabalho, voltando ao que estava no último commit.",
+    example: "git restore index.js",
+  },
+  "git restore --staged": {
+    command: "git restore --staged <arquivo>",
+    category: "Desfazer",
+    short: "Tira um arquivo da área de staging, sem perder a alteração (ela volta pra área de trabalho).",
+    example: "git restore --staged index.js",
+  },
+  "git reset --soft": {
+    command: "git reset --soft <commit>",
+    category: "Desfazer",
+    short: "Move a branch atual para outro commit, mas mantém tudo preparado (staged) — as alterações dos commits desfeitos ficam prontas pra recommitar.",
+    example: "git reset --soft HEAD~1",
+  },
+  "git reset --mixed": {
+    command: "git reset --mixed <commit>  (ou só 'git reset <commit>')",
+    category: "Desfazer",
+    short: "Move a branch atual para outro commit e tira tudo da staging area — as alterações continuam no working directory, só sem estar preparadas.",
+    example: "git reset HEAD~1",
+  },
+  "git reset --hard": {
+    command: "git reset --hard <commit>",
+    category: "Desfazer",
+    short: "Move a branch atual para outro commit e descarta staging e working directory por completo. Destrutivo: o que não foi commitado se perde.",
+    example: "git reset --hard HEAD~1",
+  },
+  "git revert": {
+    command: "git revert <commit>",
+    category: "Desfazer",
+    short: "Desfaz um commit criando um commit novo que aplica o efeito contrário, sem reescrever o histórico existente.",
+    example: "git revert c2",
+  },
 };
 
-export const CATEGORIES = ["Fundamentos", "Branching", "Tags"] as const;
+export const CATEGORIES = ["Fundamentos", "Branching", "Tags", "Desfazer"] as const;

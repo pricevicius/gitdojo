@@ -336,6 +336,125 @@ describe("comando não suportado / entrada vazia", () => {
   });
 });
 
+describe("git restore", () => {
+  it("descarta uma alteração na área de trabalho", () => {
+    const s = { ...init(), workingChanges: ["a.txt"] };
+    const result = runCommand("git restore a.txt", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.workingChanges).toEqual([]);
+  });
+
+  it("--staged desfaz o add sem perder a alteração", () => {
+    const s = { ...init(), staged: ["a.txt"] };
+    const result = runCommand("git restore --staged a.txt", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.staged).toEqual([]);
+    expect(result.state.workingChanges).toEqual(["a.txt"]);
+  });
+
+  it("falha com arquivo que não está no lugar esperado", () => {
+    const s = init();
+    expect(runCommand("git restore a.txt", s).ok).toBe(false);
+    expect(runCommand("git restore --staged a.txt", s).ok).toBe(false);
+  });
+
+  it("falha sem argumento", () => {
+    expect(runCommand("git restore", init()).ok).toBe(false);
+  });
+});
+
+describe("git reset", () => {
+  function setupWithStaged() {
+    let s = commit(init(), "primeiro");
+    s = commit(s, "segundo");
+    return { ...s, staged: ["extra.txt"] };
+  }
+
+  it("--soft move a branch mas preserva staged", () => {
+    const s = setupWithStaged();
+    const result = runCommand("git reset --soft HEAD~1", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.branches["main"]).toBe("c1");
+    expect(result.state.staged).toEqual(["extra.txt"]);
+    expect(result.unlockedCommand).toBe("git reset --soft");
+  });
+
+  it("--mixed (padrão) move a branch e tira tudo do staging", () => {
+    const s = setupWithStaged();
+    const result = runCommand("git reset HEAD~1", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.branches["main"]).toBe("c1");
+    expect(result.state.staged).toEqual([]);
+    expect(result.state.workingChanges).toEqual(["extra.txt"]);
+    expect(result.unlockedCommand).toBe("git reset --mixed");
+  });
+
+  it("--hard move a branch e descarta staged e working changes", () => {
+    const s = { ...setupWithStaged(), workingChanges: ["outro.txt"] };
+    const result = runCommand("git reset --hard HEAD~1", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.branches["main"]).toBe("c1");
+    expect(result.state.staged).toEqual([]);
+    expect(result.state.workingChanges).toEqual([]);
+  });
+
+  it("aceita um id de commit direto como alvo", () => {
+    const s = setupWithStaged();
+    const result = runCommand("git reset --hard c1", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.branches["main"]).toBe("c1");
+  });
+
+  it("falha com revisão desconhecida", () => {
+    const s = commit(init());
+    expect(runCommand("git reset --hard nao-existe", s).ok).toBe(false);
+  });
+
+  it("falha em HEAD destacado", () => {
+    let s = commit(init());
+    s = runCommand("git checkout c1", s).state;
+    expect(runCommand("git reset --hard HEAD~1", s).ok).toBe(false);
+  });
+});
+
+describe("git revert", () => {
+  it("cria um commit novo que desfaz o efeito do commit indicado", () => {
+    let s = commit(init(), "primeiro");
+    s = commit(s, "segundo");
+    const result = runCommand("git revert c2", s);
+    expect(result.ok).toBe(true);
+    const tip = result.state.branches["main"]!;
+    expect(result.state.commits[tip].message).toBe('Revert "segundo"');
+    expect(result.state.commits[tip].parentIds).toEqual(["c2"]);
+  });
+
+  it("não reescreve nenhum commit existente", () => {
+    let s = commit(init(), "primeiro");
+    s = commit(s, "segundo");
+    const before = Object.keys(s.commits).length;
+    const result = runCommand("git revert c2", s);
+    expect(Object.keys(result.state.commits).length).toBe(before + 1);
+    expect(result.state.commits["c1"].message).toBe("primeiro");
+    expect(result.state.commits["c2"].message).toBe("segundo");
+  });
+
+  it("falha com commit inexistente", () => {
+    const s = commit(init());
+    expect(runCommand("git revert c9", s).ok).toBe(false);
+  });
+
+  it("falha sem argumento", () => {
+    const s = commit(init());
+    expect(runCommand("git revert", s).ok).toBe(false);
+  });
+
+  it("falha em HEAD destacado", () => {
+    let s = commit(init());
+    s = runCommand("git checkout c1", s).state;
+    expect(runCommand("git revert c1", s).ok).toBe(false);
+  });
+});
+
 describe("imutabilidade", () => {
   it("runCommand não muta o estado recebido", () => {
     const before = init();
