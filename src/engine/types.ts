@@ -25,6 +25,22 @@ export interface RepoState {
   tags: Record<string, Tag>;
   commitCounter: number;
   lastCommand: string | null;
+  /** Remotes registrados, nome -> url (fake, não há rede de verdade). */
+  remotes: Record<string, string>;
+  /**
+   * Estado real do remoto, chave "origin/main" -> commit. Só muda com push
+   * (ou já vem populado no setup de um desafio, simulando trabalho de outra
+   * pessoa que já chegou lá).
+   */
+  remoteBranches: Record<string, string | null>;
+  /**
+   * Última cópia local do estado do remoto ("origin/main" -> commit), o que
+   * o grafo desenha como referência de rastreamento. Só avança com fetch,
+   * pull ou push — nunca sozinha.
+   */
+  trackingBranches: Record<string, string | null>;
+  /** Branch local -> ref remota que ela rastreia, ex: "main" -> "origin/main". */
+  upstream: Record<string, string>;
 }
 
 export interface CommandResult {
@@ -45,5 +61,9 @@ export function createInitialState(): RepoState {
     tags: {},
     commitCounter: 0,
     lastCommand: null,
+    remotes: {},
+    remoteBranches: {},
+    trackingBranches: {},
+    upstream: {},
   };
 }

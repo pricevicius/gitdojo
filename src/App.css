@@ -211,10 +211,17 @@
   fill: var(--accent-dim);
   stroke: var(--accent);
 }
+.branch-pill.remote {
+  fill: #1b2b3a;
+  stroke: #3a6ea5;
+}
 .branch-label {
   fill: var(--text);
   font-size: 11px;
   font-weight: 600;
+}
+.branch-label.remote {
+  fill: #7fb3e0;
 }
 .tag-pill {
   fill: #3a2a12;

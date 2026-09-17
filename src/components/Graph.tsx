@@ -28,7 +28,11 @@ export default function Graph({ state }: Props) {
   const width = Math.max(360, layout.maxDepth * COL_W + MARGIN_X * 2 + 40);
   const height = Math.max(
     200,
-    layout.maxLane * ROW_H + MARGIN_Y * 2 + 60 + Math.max(0, layout.maxTagsOnCommit - 1) * 24
+    layout.maxLane * ROW_H +
+      MARGIN_Y * 2 +
+      layout.topPadding +
+      60 +
+      Math.max(0, layout.maxTagsOnCommit - 1) * 24
   );
 
   return (
@@ -88,6 +92,15 @@ export default function Graph({ state }: Props) {
         </g>
       ))}
 
+      {layout.remoteBranchLabels.map((r, i) => (
+        <g key={`remote-${i}`} transform={`translate(${r.x}, ${r.y})`}>
+          <rect x={-4} y={-30} width={r.width} height={20} rx={10} className="branch-pill remote" />
+          <text x={r.width / 2 - 4} y={-16} textAnchor="middle" className="branch-label remote">
+            {r.name}
+          </text>
+        </g>
+      ))}
+
       {layout.tagLabels.map((t, i) => (
         <g key={`tag-${i}`} transform={`translate(${t.x}, ${t.y})`}>
           <rect x={-4} y={-30} width={t.width} height={20} rx={4} className="tag-pill" />
@@ -102,6 +115,32 @@ export default function Graph({ state }: Props) {
 
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+/**
+ * Commits alcançáveis a partir de algo que a pessoa já "conhece" localmente:
+ * branches locais, referências de rastreamento (origin/*) e HEAD destacado.
+ * Um commit que só existe em remoteBranches (empurrado por outra pessoa, mas
+ * ainda não buscado com fetch/pull) fica de fora — é assim que o fetch
+ * "revela" trabalho novo, em vez de aparecer no grafo antes da hora.
+ */
+function reachableCommitIds(state: RepoState): Set<string> {
+  const roots = [
+    ...Object.values(state.branches),
+    ...Object.values(state.trackingBranches),
+    state.head.type === "detached" ? state.head.commit : null,
+  ].filter((id): id is string => !!id);
+
+  const seen = new Set<string>();
+  const stack = [...roots];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const commit = state.commits[id];
+    if (commit) stack.push(...commit.parentIds);
+  }
+  return seen;
 }
 
 function computeLayout(state: RepoState) {
@@ -119,10 +158,15 @@ function computeLayout(state: RepoState) {
     return d;
   }
 
+  const reachable = reachableCommitIds(state);
   const positions: Record<string, { x: number; y: number }> = {};
-  const commitIds = Object.keys(state.commits);
+  const commitIds = Object.keys(state.commits).filter((id) => reachable.has(id));
   let maxDepth = 0;
   let maxLane = Math.max(0, Object.keys(lanes).length - 1);
+
+  // Reserva espaço extra acima quando houver pills de origin/*, que ficam
+  // empilhadas por cima do pill da branch local.
+  const topPadding = Object.values(state.trackingBranches).some((v) => !!v) ? 24 : 0;
 
   commitIds.forEach((id) => {
     const c = state.commits[id];
@@ -131,7 +175,7 @@ function computeLayout(state: RepoState) {
     maxDepth = Math.max(maxDepth, d);
     positions[id] = {
       x: MARGIN_X + d * COL_W,
-      y: MARGIN_Y + lane * ROW_H,
+      y: MARGIN_Y + topPadding + lane * ROW_H,
     };
   });
 
@@ -155,6 +199,18 @@ function computeLayout(state: RepoState) {
     });
   });
 
+  const remoteBranchLabels: { name: string; x: number; y: number; width: number }[] = [];
+  Object.entries(state.trackingBranches).forEach(([ref, tip]) => {
+    if (!tip || !positions[tip]) return;
+    const pos = positions[tip];
+    remoteBranchLabels.push({
+      name: ref,
+      x: pos.x - 30,
+      y: pos.y - 24,
+      width: Math.max(50, ref.length * 8 + 20),
+    });
+  });
+
   const tagLabels: { name: string; x: number; y: number; width: number }[] = [];
   const tagsPerCommit: Record<string, number> = {};
   let maxTagsOnCommit = 0;
@@ -172,5 +228,15 @@ function computeLayout(state: RepoState) {
     });
   });
 
-  return { positions, edges, branchLabels, tagLabels, maxDepth, maxLane, maxTagsOnCommit };
+  return {
+    positions,
+    edges,
+    branchLabels,
+    remoteBranchLabels,
+    tagLabels,
+    maxDepth,
+    maxLane,
+    maxTagsOnCommit,
+    topPadding,
+  };
 }

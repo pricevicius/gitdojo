@@ -455,6 +455,201 @@ describe("git revert", () => {
   });
 });
 
+describe("git remote", () => {
+  it("registra um remoto novo", () => {
+    const s = init();
+    const result = runCommand("git remote add origin https://example.com/repo.git", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.remotes["origin"]).toBe("https://example.com/repo.git");
+    expect(result.unlockedCommand).toBe("git remote add");
+  });
+
+  it("falha ao registrar remoto duplicado", () => {
+    const s = runCommand("git remote add origin url", init()).state;
+    expect(runCommand("git remote add origin outra-url", s).ok).toBe(false);
+  });
+
+  it("falha sem nome ou url", () => {
+    expect(runCommand("git remote add origin", init()).ok).toBe(false);
+    expect(runCommand("git remote add", init()).ok).toBe(false);
+  });
+
+  it("-v lista os remotos registrados", () => {
+    const s = runCommand("git remote add origin url", init()).state;
+    const result = runCommand("git remote -v", s);
+    expect(result.ok).toBe(true);
+    expect(result.output.join("\n")).toContain("origin");
+  });
+});
+
+describe("git push", () => {
+  function withOrigin() {
+    let s = commit(init(), "primeiro");
+    s = runCommand("git remote add origin url", s).state;
+    return s;
+  }
+
+  it("-u envia e configura o upstream", () => {
+    const s = withOrigin();
+    const result = runCommand("git push -u origin main", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.remoteBranches["origin/main"]).toBe("c1");
+    expect(result.state.trackingBranches["origin/main"]).toBe("c1");
+    expect(result.state.upstream["main"]).toBe("origin/main");
+    expect(result.unlockedCommand).toBe("git push -u");
+  });
+
+  it("push simples sem -u não configura upstream", () => {
+    const s = withOrigin();
+    const result = runCommand("git push origin main", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.upstream["main"]).toBeUndefined();
+    expect(result.unlockedCommand).toBe("git push");
+  });
+
+  it("usa o upstream configurado quando chamado sem argumentos", () => {
+    let s = withOrigin();
+    s = runCommand("git push -u origin main", s).state;
+    s = commit(s, "segundo");
+    const result = runCommand("git push", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.remoteBranches["origin/main"]).toBe("c2");
+  });
+
+  it("falha sem upstream e sem argumentos", () => {
+    const s = withOrigin();
+    expect(runCommand("git push", s).ok).toBe(false);
+  });
+
+  it("falha com remoto não registrado", () => {
+    const s = commit(init());
+    expect(runCommand("git push origin main", s).ok).toBe(false);
+  });
+
+  it("é rejeitado quando o remoto tem commits que o local não tem", () => {
+    let s = withOrigin();
+    s = runCommand("git push -u origin main", s).state;
+    // alguém mais empurrou um commit direto pro remoto
+    s = {
+      ...s,
+      commitCounter: 2,
+      commits: {
+        ...s.commits,
+        c2: { id: "c2", parentIds: ["c1"], message: "colega", createdOnBranch: "main" },
+      },
+      remoteBranches: { "origin/main": "c2" },
+    };
+    const result = runCommand("git push", s);
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("git fetch", () => {
+  it("atualiza a referência de rastreamento sem mexer na branch local", () => {
+    let s = commit(init(), "primeiro");
+    s = runCommand("git remote add origin url", s).state;
+    s = runCommand("git push -u origin main", s).state;
+    s = {
+      ...s,
+      commitCounter: 2,
+      commits: {
+        ...s.commits,
+        c2: { id: "c2", parentIds: ["c1"], message: "colega", createdOnBranch: "main" },
+      },
+      remoteBranches: { "origin/main": "c2" },
+    };
+    const result = runCommand("git fetch", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.trackingBranches["origin/main"]).toBe("c2");
+    expect(result.state.branches["main"]).toBe("c1");
+  });
+
+  it("already up to date quando não há nada novo", () => {
+    let s = commit(init());
+    s = runCommand("git remote add origin url", s).state;
+    s = runCommand("git push -u origin main", s).state;
+    const result = runCommand("git fetch", s);
+    expect(result.output.join("\n")).toContain("Already up to date");
+  });
+
+  it("falha com remoto não registrado", () => {
+    expect(runCommand("git fetch", commit(init())).ok).toBe(false);
+  });
+});
+
+describe("git pull", () => {
+  function withRemoteAhead(): RepoState {
+    let s = commit(init(), "primeiro");
+    s = runCommand("git remote add origin url", s).state;
+    s = runCommand("git push -u origin main", s).state;
+    return {
+      ...s,
+      commitCounter: 2,
+      commits: {
+        ...s.commits,
+        c2: { id: "c2", parentIds: ["c1"], message: "colega", createdOnBranch: "main" },
+      },
+      remoteBranches: { "origin/main": "c2" },
+    };
+  }
+
+  it("faz fetch + fast-forward quando não há divergência", () => {
+    const s = withRemoteAhead();
+    const result = runCommand("git pull", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.branches["main"]).toBe("c2");
+    expect(result.state.trackingBranches["origin/main"]).toBe("c2");
+    expect(result.unlockedCommand).toBe("git pull");
+  });
+
+  it("cria commit de merge quando histórico local também avançou", () => {
+    let s = withRemoteAhead();
+    s = commit(s, "trabalho local");
+    const result = runCommand("git pull", s);
+    expect(result.ok).toBe(true);
+    const tip = result.state.branches["main"]!;
+    expect(result.state.commits[tip].parentIds).toHaveLength(2);
+  });
+
+  it("falha sem upstream e sem argumentos", () => {
+    const s = commit(init());
+    expect(runCommand("git pull", s).ok).toBe(false);
+  });
+});
+
+describe("git clone", () => {
+  function remoteOnlyRepo(): RepoState {
+    const s = createInitialState();
+    s.commitCounter = 1;
+    s.commits["c1"] = { id: "c1", parentIds: [], message: "primeiro commit", createdOnBranch: "main" };
+    s.remoteBranches["origin/main"] = "c1";
+    return s;
+  }
+
+  it("inicializa o repositório a partir do remoto", () => {
+    const s = remoteOnlyRepo();
+    const result = runCommand("git clone https://example.com/repo.git", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.initialized).toBe(true);
+    expect(result.state.branches["main"]).toBe("c1");
+    expect(result.state.trackingBranches["origin/main"]).toBe("c1");
+    expect(result.state.upstream["main"]).toBe("origin/main");
+    expect(result.state.remotes["origin"]).toBe("https://example.com/repo.git");
+  });
+
+  it("falha se já houver um repositório inicializado", () => {
+    expect(runCommand("git clone url", init()).ok).toBe(false);
+  });
+
+  it("falha sem url", () => {
+    expect(runCommand("git clone", remoteOnlyRepo()).ok).toBe(false);
+  });
+
+  it("falha se não houver nada para clonar", () => {
+    expect(runCommand("git clone url", createInitialState()).ok).toBe(false);
+  });
+});
+
 describe("imutabilidade", () => {
   it("runCommand não muta o estado recebido", () => {
     const before = init();

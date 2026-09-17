@@ -127,6 +127,42 @@ export const DICTIONARY: Record<string, DictionaryEntry> = {
     short: "Desfaz um commit criando um commit novo que aplica o efeito contrário, sem reescrever o histórico existente.",
     example: "git revert c2",
   },
+  "git remote add": {
+    command: "git remote add <nome> <url>",
+    category: "Remoto",
+    short: "Registra um repositório remoto com um apelido (por convenção, 'origin').",
+    example: "git remote add origin https://github.com/usuario/repo.git",
+  },
+  "git push": {
+    command: "git push <remoto> <branch>",
+    category: "Remoto",
+    short: "Envia os commits da branch local para a branch correspondente no remoto.",
+    example: "git push origin main",
+  },
+  "git push -u": {
+    command: "git push -u <remoto> <branch>",
+    category: "Remoto",
+    short: "Envia e também configura a branch local para rastrear a branch remota — depois disso, um 'git push' sozinho já sabe pra onde ir.",
+    example: "git push -u origin main",
+  },
+  "git fetch": {
+    command: "git fetch [remoto]",
+    category: "Remoto",
+    short: "Busca o que há de novo no remoto e atualiza a referência de rastreamento (ex: origin/main) — sem tocar na sua branch local.",
+    example: "git fetch",
+  },
+  "git pull": {
+    command: "git pull",
+    category: "Remoto",
+    short: "Busca o que há de novo no remoto (como o fetch) e já incorpora na branch atual — vira fast-forward ou commit de merge, dependendo se a branch local também avançou.",
+    example: "git pull",
+  },
+  "git clone": {
+    command: "git clone <url>",
+    category: "Remoto",
+    short: "Cria uma cópia local completa de um repositório remoto, já com a branch principal e o rastreamento configurados.",
+    example: "git clone https://github.com/usuario/repo.git",
+  },
 };
 
-export const CATEGORIES = ["Fundamentos", "Branching", "Tags", "Desfazer"] as const;
+export const CATEGORIES = ["Fundamentos", "Branching", "Tags", "Desfazer", "Remoto"] as const;

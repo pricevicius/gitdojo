@@ -76,6 +76,16 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
         return handleReset(tokens, state);
       case "revert":
         return handleRevert(tokens, state);
+      case "remote":
+        return handleRemote(tokens, state);
+      case "push":
+        return handlePush(tokens, state);
+      case "fetch":
+        return handleFetch(tokens, state);
+      case "pull":
+        return handlePull(tokens, state);
+      case "clone":
+        return handleClone(tokens, state);
       default:
         return fail(state, `git: '${sub}' não é um comando suportado neste simulador ainda.`);
     }
@@ -349,6 +359,62 @@ function mergeTarget(tokens: string[]): string | null {
   return null;
 }
 
+/**
+ * Núcleo compartilhado de `git merge` e `git pull`: decide entre "already up
+ * to date", fast-forward ou commit de merge, e aplica o resultado em `into`.
+ */
+function mergeInto(
+  state: RepoState,
+  into: string,
+  targetTip: string | null,
+  tokens: string[],
+  sourceLabel: string,
+  unlockedCommand: string
+): CommandResult {
+  if (!targetTip) {
+    return ok(state, ["Already up to date."], unlockedCommand);
+  }
+
+  const currentTip = currentCommit(state);
+
+  // A outra ponta já está inteira no histórico atual: não há o que trazer.
+  if (currentTip && isAncestor(state, targetTip, currentTip)) {
+    return ok(state, ["Already up to date."], unlockedCommand);
+  }
+
+  // Fast-forward: a branch atual não tem nenhum commit que a outra já não tenha,
+  // então basta avançar o ponteiro — nenhum commit novo é criado.
+  const noFf = tokens.includes("--no-ff");
+  if (!currentTip || (!noFf && isAncestor(state, currentTip, targetTip))) {
+    state.branches[into] = targetTip;
+    return ok(
+      state,
+      currentTip
+        ? [`Updating ${currentTip}..${targetTip}`, "Fast-forward"]
+        : [`Updating ${targetTip}`, "Fast-forward"],
+      unlockedCommand
+    );
+  }
+
+  // Históricos divergiram: nasce um commit de merge, com os dois tips como pais.
+  const message = extractMessage(tokens, "-m") ?? `Merge ${sourceLabel} into ${into}`;
+  state.commitCounter += 1;
+  const id = `c${state.commitCounter}`;
+  state.commits[id] = {
+    id,
+    parentIds: [currentTip, targetTip],
+    message,
+    createdOnBranch: into,
+  };
+  state.branches[into] = id;
+
+  return ok(
+    state,
+    ["Merge made by the 'ort' strategy.", `[${into} ${id}] ${message}`],
+    unlockedCommand
+  );
+}
+
 function handleMerge(tokens: string[], state: RepoState): CommandResult {
   const notInit = requireInit(state);
   if (notInit) return notInit;
@@ -371,48 +437,7 @@ function handleMerge(tokens: string[], state: RepoState): CommandResult {
   }
 
   const targetTip = state.branches[name];
-  if (!targetTip) {
-    return ok(state, ["Already up to date."], "git merge");
-  }
-
-  const currentTip = currentCommit(state);
-
-  // A outra branch já está inteira no histórico atual: não há o que trazer.
-  if (currentTip && isAncestor(state, targetTip, currentTip)) {
-    return ok(state, ["Already up to date."], "git merge");
-  }
-
-  // Fast-forward: a branch atual não tem nenhum commit que a outra já não tenha,
-  // então basta avançar o ponteiro — nenhum commit novo é criado.
-  const noFf = tokens.includes("--no-ff");
-  if (!currentTip || (!noFf && isAncestor(state, currentTip, targetTip))) {
-    state.branches[into] = targetTip;
-    return ok(
-      state,
-      currentTip
-        ? [`Updating ${currentTip}..${targetTip}`, "Fast-forward"]
-        : [`Updating ${targetTip}`, "Fast-forward"],
-      "git merge"
-    );
-  }
-
-  // Históricos divergiram: nasce um commit de merge, com os dois tips como pais.
-  const message = extractMessage(tokens, "-m") ?? `Merge branch '${name}' into ${into}`;
-  state.commitCounter += 1;
-  const id = `c${state.commitCounter}`;
-  state.commits[id] = {
-    id,
-    parentIds: [currentTip, targetTip],
-    message,
-    createdOnBranch: into,
-  };
-  state.branches[into] = id;
-
-  return ok(
-    state,
-    ["Merge made by the 'ort' strategy.", `[${into} ${id}] ${message}`],
-    "git merge"
-  );
+  return mergeInto(state, into, targetTip, tokens, `branch '${name}'`, "git merge");
 }
 
 function handleTag(tokens: string[], state: RepoState): CommandResult {
@@ -541,4 +566,185 @@ function handleRevert(tokens: string[], state: RepoState): CommandResult {
   state.branches[state.head.name] = id;
 
   return ok(state, [`[${state.head.name} ${id}] ${message}`], "git revert");
+}
+
+function remoteRef(remote: string, branch: string): string {
+  return `${remote}/${branch}`;
+}
+
+function handleRemote(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (tokens[2] === "add") {
+    const name = tokens[3];
+    const url = tokens[4];
+    if (!name || !url) return fail(state, "uso: git remote add <nome> <url>");
+    if (name in state.remotes) return fail(state, `fatal: remote ${name} already exists.`);
+    state.remotes[name] = url;
+    return ok(state, [], "git remote add");
+  }
+
+  if (!tokens[2] || tokens[2] === "-v") {
+    const lines = Object.entries(state.remotes).flatMap(([name, url]) => [
+      `${name}\t${url} (fetch)`,
+      `${name}\t${url} (push)`,
+    ]);
+    return ok(state, lines);
+  }
+
+  return fail(state, `git remote: subcomando '${tokens[2]}' não suportado`);
+}
+
+/** Extrai remoto e branch dos argumentos de push/pull, com fallback pro upstream configurado. */
+function resolveRemoteAndBranch(
+  tokens: string[],
+  state: RepoState,
+  branchName: string
+): { remoteName: string; remoteBranch: string } | CommandResult {
+  const positional = tokens.slice(2).filter((t) => !t.startsWith("-"));
+  if (positional.length >= 2) {
+    return { remoteName: positional[0], remoteBranch: positional[1] };
+  }
+  if (positional.length === 1) {
+    return { remoteName: positional[0], remoteBranch: branchName };
+  }
+  const up = state.upstream[branchName];
+  if (!up) {
+    return fail(
+      state,
+      `fatal: The current branch ${branchName} has no upstream branch.`,
+      `dica: configure com 'git push -u origin ${branchName}'.`
+    );
+  }
+  const [remoteName, ...rest] = up.split("/");
+  return { remoteName, remoteBranch: rest.join("/") };
+}
+
+function handlePush(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (state.head.type === "detached") {
+    return fail(state, "não é possível dar push em HEAD destacado neste tutorial (faça checkout de uma branch)");
+  }
+
+  const branchName = state.head.name;
+  const resolved = resolveRemoteAndBranch(tokens, state, branchName);
+  if ("ok" in resolved) return resolved;
+  const { remoteName, remoteBranch } = resolved;
+
+  if (!(remoteName in state.remotes)) {
+    return fail(state, `fatal: '${remoteName}' does not appear to be a git repository`);
+  }
+
+  const localTip = state.branches[branchName];
+  if (!localTip) {
+    return fail(state, "fatal: não há commits para enviar");
+  }
+
+  const ref = remoteRef(remoteName, remoteBranch);
+  const remoteTip = state.remoteBranches[ref] ?? null;
+
+  if (remoteTip && remoteTip !== localTip && !isAncestor(state, remoteTip, localTip)) {
+    return fail(
+      state,
+      `! [rejected]        ${branchName} -> ${remoteBranch} (fetch first)`,
+      `error: failed to push some refs to '${remoteName}'`,
+      "dica: o remoto tem commits que você não tem localmente. Rode 'git fetch' e depois 'git merge' (ou use 'git pull')."
+    );
+  }
+
+  state.remoteBranches[ref] = localTip;
+  state.trackingBranches[ref] = localTip;
+
+  const setUpstream = tokens.includes("-u") || tokens.includes("--set-upstream");
+  const lines = [`To ${remoteName}`, `   ${branchName} -> ${remoteBranch}`];
+  if (setUpstream) {
+    state.upstream[branchName] = ref;
+    lines.push(`branch '${branchName}' set up to track '${ref}'.`);
+  }
+
+  return ok(state, lines, setUpstream ? "git push -u" : "git push");
+}
+
+function handleFetch(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const remoteName = tokens[2] && !tokens[2].startsWith("-") ? tokens[2] : "origin";
+  if (!(remoteName in state.remotes)) {
+    return fail(state, `fatal: '${remoteName}' does not appear to be a git repository`);
+  }
+
+  const prefix = `${remoteName}/`;
+  const updated: string[] = [];
+  Object.entries(state.remoteBranches).forEach(([ref, commit]) => {
+    if (!ref.startsWith(prefix)) return;
+    if (state.trackingBranches[ref] !== commit) {
+      state.trackingBranches[ref] = commit;
+      updated.push(ref);
+    }
+  });
+
+  if (updated.length === 0) {
+    return ok(state, ["Already up to date."], "git fetch");
+  }
+  return ok(state, [`From ${remoteName}`, ...updated.map((ref) => `   ..  ${ref}`)], "git fetch");
+}
+
+function handlePull(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (state.head.type === "detached") {
+    return fail(state, "não é possível dar pull em HEAD destacado neste tutorial (faça checkout de uma branch)");
+  }
+
+  const branchName = state.head.name;
+  const resolved = resolveRemoteAndBranch(tokens, state, branchName);
+  if ("ok" in resolved) return resolved;
+  const { remoteName, remoteBranch } = resolved;
+
+  if (!(remoteName in state.remotes)) {
+    return fail(state, `fatal: '${remoteName}' does not appear to be a git repository`);
+  }
+
+  const fetchResult = handleFetch(["git", "fetch", remoteName], state);
+  if (!fetchResult.ok) return fetchResult;
+
+  const ref = remoteRef(remoteName, remoteBranch);
+  const targetTip = state.trackingBranches[ref] ?? null;
+  return mergeInto(state, branchName, targetTip, tokens, ref, "git pull");
+}
+
+function handleClone(tokens: string[], state: RepoState): CommandResult {
+  if (state.initialized) {
+    return fail(state, "fatal: o diretório atual já é um repositório git");
+  }
+
+  const url = tokens[2];
+  if (!url) return fail(state, "especifique a url do repositório (ex: git clone <url>)");
+
+  const remoteName = "origin";
+  const prefix = `${remoteName}/`;
+  const refs = Object.entries(state.remoteBranches).filter(([ref]) => ref.startsWith(prefix));
+  if (refs.length === 0) {
+    return fail(state, "fatal: repository not found");
+  }
+
+  state.initialized = true;
+  state.remotes[remoteName] = url;
+
+  refs.forEach(([ref, commit]) => {
+    const branchName = ref.slice(prefix.length);
+    state.branches[branchName] = commit;
+    state.trackingBranches[ref] = commit;
+    state.upstream[branchName] = ref;
+  });
+
+  const headBranch = "main" in state.branches ? "main" : refs[0][0].slice(prefix.length);
+  state.head = { type: "branch", name: headBranch };
+
+  return ok(state, [`Cloning into '${url}'...`, "done."], "git clone");
 }

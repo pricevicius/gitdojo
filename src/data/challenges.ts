@@ -11,7 +11,7 @@ export interface Challenge {
   goal: (state: RepoState) => boolean;
 }
 
-const TRILHAS_ORDER = ["Fundamentos", "Branching", "Tags", "Desfazer"] as const;
+const TRILHAS_ORDER = ["Fundamentos", "Branching", "Tags", "Desfazer", "Remoto"] as const;
 export { TRILHAS_ORDER };
 
 function baseInitialized(): RepoState {
@@ -93,6 +93,50 @@ function withDivergedBranches(): RepoState {
 function withTwoCommitsAndStaged(fileName = "extra.txt"): RepoState {
   const s = withTwoCommits();
   s.staged.push(fileName);
+  return s;
+}
+
+/** Um commit local, remoto 'origin' já registrado mas nada enviado ainda. */
+function withOriginRegistered(): RepoState {
+  const s = withOneCommit();
+  s.remotes["origin"] = "https://github.com/voce/repo.git";
+  return s;
+}
+
+/** Como acima, mas já com push -u feito: origin/main == main, upstream configurado. */
+function withOriginPushed(): RepoState {
+  const s = withOriginRegistered();
+  s.remoteBranches["origin/main"] = "c1";
+  s.trackingBranches["origin/main"] = "c1";
+  s.upstream["main"] = "origin/main";
+  return s;
+}
+
+/** Como acima, mas alguém empurrou um commit novo direto pro remoto — local ainda não sabe. */
+function withRemoteAhead(): RepoState {
+  const s = withOriginPushed();
+  s.commitCounter = 2;
+  s.commits["c2"] = {
+    id: "c2",
+    parentIds: ["c1"],
+    message: "correção de um colega",
+    createdOnBranch: "main",
+  };
+  s.remoteBranches["origin/main"] = "c2";
+  return s;
+}
+
+/** Um repositório remoto já existe (commit + remoteBranches), mas nada local ainda. */
+function remoteOnlyRepo(): RepoState {
+  const s = createInitialState();
+  s.commitCounter = 1;
+  s.commits["c1"] = {
+    id: "c1",
+    parentIds: [],
+    message: "primeiro commit",
+    createdOnBranch: "main",
+  };
+  s.remoteBranches["origin/main"] = "c1";
   return s;
 }
 
@@ -306,5 +350,55 @@ export const CHALLENGES: Challenge[] = [
       const c = tip ? s.commits[tip] : null;
       return !!c && c.message.startsWith("Revert") && c.parentIds[0] === "c2";
     },
+  },
+  {
+    id: "clone-1",
+    trilha: "Remoto",
+    title: "Clone um repositório existente",
+    description:
+      "É o seu primeiro dia numa empresa nova: o repositório do projeto já existe no servidor remoto. Clone-o para começar a trabalhar localmente.",
+    hint: "Você quer uma cópia completa de um repositório que já existe em outro lugar, incluindo a branch principal e o rastreamento configurados. Qual subcomando faz isso, seguido de uma url?",
+    setup: () => remoteOnlyRepo(),
+    goal: (s) => s.initialized && s.branches["main"] === "c1" && s.upstream["main"] === "origin/main",
+  },
+  {
+    id: "remote-add-1",
+    trilha: "Remoto",
+    title: "Registre um repositório remoto",
+    description:
+      "Você criou um repositório local e agora quer conectá-lo a um servidor remoto para poder compartilhar o trabalho. Registre-o com o apelido 'origin'.",
+    hint: "Existe um subcomando que gerencia as conexões com outros repositórios. Qual, seguido de 'add', um apelido e uma url?",
+    setup: () => withOneCommit(),
+    goal: (s) => "origin" in s.remotes,
+  },
+  {
+    id: "push-u-1",
+    trilha: "Remoto",
+    title: "Envie seu trabalho pela primeira vez",
+    description:
+      "'origin' já está registrado, mas main' ainda não existe lá. Envie seus commits e configure o rastreamento, para que os próximos envios não precisem repetir os argumentos.",
+    hint: "Qual subcomando envia commits locais para o remoto? Ele tem uma flag de uma letra que, além de enviar, já liga (configura o rastreamento entre) a branch local e a remota.",
+    setup: () => withOriginRegistered(),
+    goal: (s) => s.remoteBranches["origin/main"] === "c1" && s.upstream["main"] === "origin/main",
+  },
+  {
+    id: "fetch-1",
+    trilha: "Remoto",
+    title: "Busque o que mudou, sem misturar ainda",
+    description:
+      "Um colega enviou um commit novo para 'origin/main', mas sua branch local ainda não sabe disso. Busque as novidades do remoto sem incorporar nada na sua branch ainda.",
+    hint: "Existe um comando que só atualiza o que você sabe sobre o remoto (a referência 'origin/main'), sem tocar na sua branch local — diferente do comando que também incorpora as mudanças.",
+    setup: () => withRemoteAhead(),
+    goal: (s) => s.trackingBranches["origin/main"] === "c2" && s.branches["main"] === "c1",
+  },
+  {
+    id: "pull-1",
+    trilha: "Remoto",
+    title: "Traga as novidades do remoto",
+    description:
+      "Mesma situação: um colega avançou 'origin/main' e sua branch local ficou pra trás. Desta vez, busque e já incorpore as novidades num único comando.",
+    hint: "Existe um comando que faz fetch e merge em um único passo. Qual?",
+    setup: () => withRemoteAhead(),
+    goal: (s) => s.branches["main"] === "c2",
   },
 ];
