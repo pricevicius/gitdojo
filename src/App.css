@@ -259,6 +259,13 @@
   border-bottom: 1px solid var(--border);
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
+.spotlight-challenge-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
 .spotlight-challenge-trilha {
   display: inline-block;
   background: var(--bg-panel-2);
@@ -269,7 +276,20 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
-  margin-bottom: 8px;
+}
+.spotlight-skip {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-style: italic;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.spotlight-skip:hover {
+  color: var(--accent);
 }
 .spotlight-challenge h3 {
   margin: 0 0 6px;

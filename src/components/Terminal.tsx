@@ -9,11 +9,12 @@ interface LogLine {
 interface Props {
   challenge: Challenge;
   onRun: (command: string) => { ok: boolean; output: string[] };
+  onSkip: () => void;
   log: LogLine[];
   setLog: React.Dispatch<React.SetStateAction<LogLine[]>>;
 }
 
-export default function Terminal({ challenge, onRun, log, setLog }: Props) {
+export default function Terminal({ challenge, onRun, onSkip, log, setLog }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
@@ -108,7 +109,12 @@ export default function Terminal({ challenge, onRun, log, setLog }: Props) {
         <div className="spotlight-backdrop" onClick={() => setIsOpen(false)}>
           <div className="spotlight-modal" onClick={(e) => e.stopPropagation()}>
             <div className="spotlight-challenge">
-              <span className="spotlight-challenge-trilha">{challenge.trilha}</span>
+              <div className="spotlight-challenge-top">
+                <span className="spotlight-challenge-trilha">{challenge.trilha}</span>
+                <button type="button" className="spotlight-skip" onClick={onSkip}>
+                  essa é fácil, já sei →
+                </button>
+              </div>
               <h3>{challenge.title}</h3>
               <p>{challenge.description}</p>
             </div>
