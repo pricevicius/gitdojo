@@ -13,7 +13,10 @@ interface Props {
 
 export default function Terminal({ onRun, log, setLog }: Props) {
   const [input, setInput] = useState("");
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  const history = log.filter((l) => l.kind === "input").map((l) => l.text);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -31,6 +34,28 @@ export default function Terminal({ onRun, log, setLog }: Props) {
         .map((l) => ({ kind: result.ok ? "output" : "error", text: l } as LogLine)),
     ]);
     setInput("");
+    setHistoryIndex(null);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (history.length === 0) return;
+      const nextIndex = historyIndex === null ? history.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIndex);
+      setInput(history[nextIndex]);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex === null) return;
+      const nextIndex = historyIndex + 1;
+      if (nextIndex >= history.length) {
+        setHistoryIndex(null);
+        setInput("");
+      } else {
+        setHistoryIndex(nextIndex);
+        setInput(history[nextIndex]);
+      }
+    }
   }
 
   return (
@@ -49,7 +74,11 @@ export default function Terminal({ onRun, log, setLog }: Props) {
         <input
           autoFocus
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setHistoryIndex(null);
+          }}
+          onKeyDown={handleKeyDown}
           placeholder="digite um comando git..."
           spellCheck={false}
           autoComplete="off"
