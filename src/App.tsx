@@ -72,6 +72,7 @@ export default function App() {
   const [log, setLog] = useState<LogLine[]>([]);
   const [showHint, setShowHint] = useState(false);
   const [unlocked, setUnlocked] = useState<Set<string>>(loadUnlocked);
+  const [terminalOpen, setTerminalOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -138,6 +139,7 @@ export default function App() {
         onToggleHint={() => setShowHint((v) => !v)}
         onNext={handleNext}
         onReset={handleReset}
+        onOpenTerminal={() => setTerminalOpen(true)}
       />
 
       <main className="app-main">
@@ -149,6 +151,8 @@ export default function App() {
             onSkip={handleNext}
             log={log}
             setLog={setLog}
+            isOpen={terminalOpen}
+            setIsOpen={setTerminalOpen}
           />
         </section>
         <aside className="app-sidebar">

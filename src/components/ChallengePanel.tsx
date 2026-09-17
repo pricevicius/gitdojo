@@ -9,6 +9,7 @@ interface Props {
   onToggleHint: () => void;
   onNext: () => void;
   onReset: () => void;
+  onOpenTerminal: () => void;
 }
 
 export default function ChallengePanel({
@@ -20,6 +21,7 @@ export default function ChallengePanel({
   onToggleHint,
   onNext,
   onReset,
+  onOpenTerminal,
 }: Props) {
   return (
     <div className="challenge-panel">
@@ -33,6 +35,9 @@ export default function ChallengePanel({
       <p>{challenge.description}</p>
 
       <div className="challenge-actions">
+        <button className="btn-primary" onClick={onOpenTerminal}>
+          Responder →
+        </button>
         <button className="btn-secondary" onClick={onToggleHint}>
           {showHint ? "Esconder dica" : "Ver dica"}
         </button>

@@ -12,10 +12,19 @@ interface Props {
   onSkip: () => void;
   log: LogLine[];
   setLog: React.Dispatch<React.SetStateAction<LogLine[]>>;
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Terminal({ challenge, onRun, onSkip, log, setLog }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Terminal({
+  challenge,
+  onRun,
+  onSkip,
+  log,
+  setLog,
+  isOpen,
+  setIsOpen,
+}: Props) {
   const [input, setInput] = useState("");
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -44,7 +53,7 @@ export default function Terminal({ challenge, onRun, onSkip, log, setLog }: Prop
     }
     window.addEventListener("keydown", onGlobalKeyDown);
     return () => window.removeEventListener("keydown", onGlobalKeyDown);
-  }, [isOpen]);
+  }, [isOpen, setIsOpen]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
