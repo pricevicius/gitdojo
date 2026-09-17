@@ -202,6 +202,7 @@ function handleBranch(tokens: string[], state: RepoState): CommandResult {
   if (notInit) return notInit;
 
   if (tokens.includes("-d") || tokens.includes("-D")) {
+    const force = tokens.includes("-D");
     const flagIdx = tokens.findIndex((t) => t === "-d" || t === "-D");
     const name = tokens[flagIdx + 1];
     if (!name) return fail(state, "especifique o nome da branch a deletar");
@@ -210,6 +211,15 @@ function handleBranch(tokens: string[], state: RepoState): CommandResult {
     }
     if (state.head.type === "branch" && state.head.name === name) {
       return fail(state, `error: Cannot delete branch '${name}' checked out`);
+    }
+    const tip = state.branches[name];
+    const head = currentCommit(state);
+    if (!force && tip && head && !isAncestor(state, tip, head)) {
+      return fail(
+        state,
+        `error: The branch '${name}' is not fully merged.`,
+        `If you are sure you want to delete it, run 'git branch -D ${name}'.`
+      );
     }
     delete state.branches[name];
     return ok(state, [`Deleted branch ${name}.`], "git branch -d");
