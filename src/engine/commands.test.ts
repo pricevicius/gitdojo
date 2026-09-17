@@ -242,7 +242,7 @@ describe("git merge", () => {
     const withFeature = runCommand("git branch feature", s).state;
     const result = runCommand("git merge feature", withFeature);
     expect(result.ok).toBe(true);
-    expect(result.output.join("\n")).toContain("Already up to date");
+    expect(result.output.join("\n")).toContain("Já está tudo atualizado");
   });
 
   it("fast-forward quando main não avançou", () => {
@@ -252,7 +252,7 @@ describe("git merge", () => {
     s = runCommand("git checkout main", s).state;
     const result = runCommand("git merge feature", s);
     expect(result.ok).toBe(true);
-    expect(result.output.join("\n")).toContain("Fast-forward");
+    expect(result.output.join("\n")).toContain("Avanço rápido");
     expect(result.state.branches["main"]).toBe(result.state.branches["feature"]);
   });
 
@@ -569,7 +569,7 @@ describe("git fetch", () => {
     s = runCommand("git remote add origin url", s).state;
     s = runCommand("git push -u origin main", s).state;
     const result = runCommand("git fetch", s);
-    expect(result.output.join("\n")).toContain("Already up to date");
+    expect(result.output.join("\n")).toContain("Já está tudo atualizado");
   });
 
   it("falha com remoto não registrado", () => {

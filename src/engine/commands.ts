@@ -99,19 +99,19 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
 
 function requireInit(state: RepoState): CommandResult | null {
   if (!state.initialized) {
-    return fail(state, "fatal: not a git repository (rode 'git init' primeiro)");
+    return fail(state, "fatal: não é um repositório git (rode 'git init' primeiro)");
   }
   return null;
 }
 
 function handleInit(state: RepoState): CommandResult {
   if (state.initialized) {
-    return ok(state, ["Reinitialized existing Git repository."]);
+    return ok(state, ["Repositório Git existente reinicializado."]);
   }
   state.initialized = true;
   state.branches["main"] = null;
   state.head = { type: "branch", name: "main" };
-  return ok(state, ["Initialized empty Git repository in ./.git/"], "git init");
+  return ok(state, ["Repositório Git vazio inicializado em ./.git/"], "git init");
 }
 
 function handleStatus(state: RepoState): CommandResult {
@@ -121,19 +121,19 @@ function handleStatus(state: RepoState): CommandResult {
   const lines: string[] = [];
   lines.push(
     state.head.type === "branch"
-      ? `On branch ${state.head.name}`
-      : `HEAD detached at ${state.head.commit.slice(0, 7)}`
+      ? `Na branch ${state.head.name}`
+      : `HEAD destacado em ${state.head.commit.slice(0, 7)}`
   );
   if (state.staged.length === 0 && state.workingChanges.length === 0) {
-    lines.push("nothing to commit, working tree clean");
+    lines.push("nada a commitar, árvore de trabalho limpa");
   } else {
     if (state.staged.length > 0) {
-      lines.push("Changes to be committed:");
-      state.staged.forEach((f) => lines.push(`  new file:   ${f}`));
+      lines.push("Alterações preparadas para commit:");
+      state.staged.forEach((f) => lines.push(`  novo arquivo:   ${f}`));
     }
     if (state.workingChanges.length > 0) {
-      lines.push("Changes not staged for commit:");
-      state.workingChanges.forEach((f) => lines.push(`  modified:   ${f}`));
+      lines.push("Alterações não preparadas para commit:");
+      state.workingChanges.forEach((f) => lines.push(`  modificado:   ${f}`));
     }
   }
   return ok(state, lines, "git status");
@@ -144,7 +144,7 @@ function handleAdd(tokens: string[], state: RepoState): CommandResult {
   if (notInit) return notInit;
 
   const arg = tokens[2];
-  if (!arg) return fail(state, "Nothing specified, nothing added.");
+  if (!arg) return fail(state, "Nada especificado, nada adicionado.");
 
   if (state.workingChanges.length === 0) {
     return fail(state, "Nada para adicionar: não há alterações pendentes.");
@@ -177,10 +177,10 @@ function handleCommit(tokens: string[], state: RepoState): CommandResult {
   }
   const message = extractMessage(tokens, "-m");
   if (!message) {
-    return fail(state, "Aborting commit due to empty commit message.");
+    return fail(state, "Commit abortado: mensagem vazia.");
   }
   if (state.staged.length === 0) {
-    return fail(state, "nothing added to commit (use 'git add')");
+    return fail(state, "nada preparado para commit (use 'git add')");
   }
 
   const parentId = currentCommit(state);
@@ -209,7 +209,7 @@ function handleLog(state: RepoState): CommandResult {
   const lines: string[] = [];
   let cursor: string | null = currentCommit(state);
   if (!cursor) {
-    return fail(state, "fatal: your current branch does not have any commits yet");
+    return fail(state, "fatal: sua branch atual ainda não tem nenhum commit");
   }
   while (cursor) {
     const c: Commit = state.commits[cursor];
@@ -230,22 +230,22 @@ function handleBranch(tokens: string[], state: RepoState): CommandResult {
     const name = tokens[flagIdx + 1];
     if (!name) return fail(state, "especifique o nome da branch a deletar");
     if (!(name in state.branches)) {
-      return fail(state, `error: branch '${name}' not found.`);
+      return fail(state, `error: branch '${name}' não encontrada.`);
     }
     if (state.head.type === "branch" && state.head.name === name) {
-      return fail(state, `error: Cannot delete branch '${name}' checked out`);
+      return fail(state, `error: não é possível deletar a branch '${name}': você está nela agora`);
     }
     const tip = state.branches[name];
     const head = currentCommit(state);
     if (!force && tip && head && !isAncestor(state, tip, head)) {
       return fail(
         state,
-        `error: The branch '${name}' is not fully merged.`,
-        `If you are sure you want to delete it, run 'git branch -D ${name}'.`
+        `error: a branch '${name}' não foi totalmente mesclada.`,
+        `Se tiver certeza que quer deletá-la, rode 'git branch -D ${name}'.`
       );
     }
     delete state.branches[name];
-    return ok(state, [`Deleted branch ${name}.`], "git branch -d");
+    return ok(state, [`Branch ${name} deletada.`], "git branch -d");
   }
 
   const name = tokens[2];
@@ -258,7 +258,7 @@ function handleBranch(tokens: string[], state: RepoState): CommandResult {
   }
 
   if (name in state.branches) {
-    return fail(state, `fatal: A branch named '${name}' already exists.`);
+    return fail(state, `fatal: já existe uma branch chamada '${name}'.`);
   }
   const cur = currentCommit(state);
   state.branches[name] = cur;
@@ -273,36 +273,36 @@ function handleCheckout(tokens: string[], state: RepoState): CommandResult {
     const name = tokens[3];
     if (!name) return fail(state, "especifique o nome da nova branch");
     if (name in state.branches) {
-      return fail(state, `fatal: A branch named '${name}' already exists.`);
+      return fail(state, `fatal: já existe uma branch chamada '${name}'.`);
     }
     state.branches[name] = currentCommit(state);
     state.head = { type: "branch", name };
-    return ok(state, [`Switched to a new branch '${name}'`], "git checkout -b");
+    return ok(state, [`Trocou para uma nova branch '${name}'`], "git checkout -b");
   }
 
   const name = tokens[2];
   if (!name) return fail(state, "especifique uma branch");
   if (name in state.branches) {
     state.head = { type: "branch", name };
-    return ok(state, [`Switched to branch '${name}'`], "git checkout");
+    return ok(state, [`Trocou para a branch '${name}'`], "git checkout");
   }
   if (name in state.commits) {
     state.head = { type: "detached", commit: name };
     return ok(
       state,
       [
-        `Note: switching to '${name}'.`,
+        `Nota: trocando para '${name}'.`,
         "",
-        "You are in 'detached HEAD' state. You can look around, make experimental",
-        "changes and commit them, and you can discard any commits you make in this",
-        "state without impacting any branches by switching back to a branch.",
+        "Você está em estado de 'HEAD destacado'. Pode olhar ao redor, fazer",
+        "alterações experimentais e commitá-las, e pode descartar qualquer commit",
+        "feito nesse estado sem afetar nenhuma branch, bastando voltar para uma.",
         "",
-        `HEAD is now at ${name.slice(0, 7)}`,
+        `HEAD agora está em ${name.slice(0, 7)}`,
       ],
       "git checkout (detached)"
     );
   }
-  return fail(state, `error: pathspec '${name}' did not match any file(s) known to git`);
+  return fail(state, `error: pathspec '${name}' não corresponde a nenhum arquivo conhecido pelo git`);
 }
 
 function handleSwitch(tokens: string[], state: RepoState): CommandResult {
@@ -313,20 +313,20 @@ function handleSwitch(tokens: string[], state: RepoState): CommandResult {
     const name = tokens[3];
     if (!name) return fail(state, "especifique o nome da nova branch");
     if (name in state.branches) {
-      return fail(state, `fatal: A branch named '${name}' already exists.`);
+      return fail(state, `fatal: já existe uma branch chamada '${name}'.`);
     }
     state.branches[name] = currentCommit(state);
     state.head = { type: "branch", name };
-    return ok(state, [`Switched to a new branch '${name}'`], "git switch -c");
+    return ok(state, [`Trocou para uma nova branch '${name}'`], "git switch -c");
   }
 
   const name = tokens[2];
   if (!name) return fail(state, "especifique uma branch");
   if (!(name in state.branches)) {
-    return fail(state, `fatal: invalid reference: ${name}`);
+    return fail(state, `fatal: referência inválida: ${name}`);
   }
   state.head = { type: "branch", name };
-  return ok(state, [`Switched to branch '${name}'`], "git switch");
+  return ok(state, [`Trocou para a branch '${name}'`], "git switch");
 }
 
 /** True se `ancestorId` for alcançável a partir de `descendantId` seguindo os pais. */
@@ -372,14 +372,14 @@ function mergeInto(
   unlockedCommand: string
 ): CommandResult {
   if (!targetTip) {
-    return ok(state, ["Already up to date."], unlockedCommand);
+    return ok(state, ["Já está tudo atualizado."], unlockedCommand);
   }
 
   const currentTip = currentCommit(state);
 
   // A outra ponta já está inteira no histórico atual: não há o que trazer.
   if (currentTip && isAncestor(state, targetTip, currentTip)) {
-    return ok(state, ["Already up to date."], unlockedCommand);
+    return ok(state, ["Já está tudo atualizado."], unlockedCommand);
   }
 
   // Fast-forward: a branch atual não tem nenhum commit que a outra já não tenha,
@@ -390,8 +390,8 @@ function mergeInto(
     return ok(
       state,
       currentTip
-        ? [`Updating ${currentTip}..${targetTip}`, "Fast-forward"]
-        : [`Updating ${targetTip}`, "Fast-forward"],
+        ? [`Atualizando ${currentTip}..${targetTip}`, "Avanço rápido (fast-forward)"]
+        : [`Atualizando ${targetTip}`, "Avanço rápido (fast-forward)"],
       unlockedCommand
     );
   }
@@ -410,7 +410,7 @@ function mergeInto(
 
   return ok(
     state,
-    ["Merge made by the 'ort' strategy.", `[${into} ${id}] ${message}`],
+    [`Merge feito com a estratégia 'ort'.`, `[${into} ${id}] ${message}`],
     unlockedCommand
   );
 }
@@ -428,7 +428,7 @@ function handleMerge(tokens: string[], state: RepoState): CommandResult {
     return fail(state, "especifique a branch a ser incorporada (ex: git merge feature-login)");
   }
   if (!(name in state.branches)) {
-    return fail(state, `merge: ${name} - not something we can merge`);
+    return fail(state, `merge: ${name} - não é algo que dá pra mesclar`);
   }
 
   const into = state.head.name;
@@ -452,7 +452,7 @@ function handleTag(tokens: string[], state: RepoState): CommandResult {
     const name = tokens[aIdx + 1];
     if (!name) return fail(state, "especifique o nome da tag");
     const message = extractMessage(tokens, "-m") ?? "";
-    if (name in state.tags) return fail(state, `fatal: tag '${name}' already exists`);
+    if (name in state.tags) return fail(state, `fatal: a tag '${name}' já existe`);
     state.tags[name] = { commit: cur, message, annotated: true };
     return ok(state, [], "git tag -a");
   }
@@ -461,7 +461,7 @@ function handleTag(tokens: string[], state: RepoState): CommandResult {
   if (!name) {
     return ok(state, Object.keys(state.tags), "git tag");
   }
-  if (name in state.tags) return fail(state, `fatal: tag '${name}' already exists`);
+  if (name in state.tags) return fail(state, `fatal: a tag '${name}' já existe`);
   state.tags[name] = { commit: cur, annotated: false };
   return ok(state, [], "git tag");
 }
@@ -477,7 +477,7 @@ function handleRestore(tokens: string[], state: RepoState): CommandResult {
   if (staged) {
     const i = state.staged.indexOf(arg);
     if (i === -1) {
-      return fail(state, `error: pathspec '${arg}' did not match any file(s) known to git`);
+      return fail(state, `error: pathspec '${arg}' não corresponde a nenhum arquivo conhecido pelo git`);
     }
     state.staged.splice(i, 1);
     state.workingChanges.push(arg);
@@ -486,7 +486,7 @@ function handleRestore(tokens: string[], state: RepoState): CommandResult {
 
   const i = state.workingChanges.indexOf(arg);
   if (i === -1) {
-    return fail(state, `error: pathspec '${arg}' did not match any file(s) known to git`);
+    return fail(state, `error: pathspec '${arg}' não corresponde a nenhum arquivo conhecido pelo git`);
   }
   state.workingChanges.splice(i, 1);
   return ok(state, [], "git restore");
@@ -520,7 +520,10 @@ function handleReset(tokens: string[], state: RepoState): CommandResult {
 
   const target = resetTargetCommit(state, tokens);
   if (!target) {
-    return fail(state, "fatal: ambiguous argument: unknown revision or path not in the working tree.");
+    return fail(
+      state,
+      "fatal: argumento ambíguo: revisão desconhecida ou caminho que não está na árvore de trabalho."
+    );
   }
 
   const mode = tokens.includes("--hard") ? "hard" : tokens.includes("--soft") ? "soft" : "mixed";
@@ -535,7 +538,7 @@ function handleReset(tokens: string[], state: RepoState): CommandResult {
   }
   // --soft: staged e workingChanges continuam como estavam.
 
-  return ok(state, [`HEAD is now at ${target.slice(0, 7)}`], `git reset --${mode}`);
+  return ok(state, [`HEAD agora está em ${target.slice(0, 7)}`], `git reset --${mode}`);
 }
 
 function handleRevert(tokens: string[], state: RepoState): CommandResult {
@@ -549,10 +552,10 @@ function handleRevert(tokens: string[], state: RepoState): CommandResult {
   const targetId = tokens[2];
   if (!targetId) return fail(state, "especifique o commit a reverter (ex: git revert c2)");
   const target = state.commits[targetId];
-  if (!target) return fail(state, `fatal: bad revision '${targetId}'`);
+  if (!target) return fail(state, `fatal: revisão inválida '${targetId}'`);
 
   const cur = currentCommit(state);
-  if (!cur) return fail(state, "fatal: your current branch does not have any commits yet");
+  if (!cur) return fail(state, "fatal: sua branch atual ainda não tem nenhum commit");
 
   state.commitCounter += 1;
   const id = `c${state.commitCounter}`;
@@ -580,7 +583,7 @@ function handleRemote(tokens: string[], state: RepoState): CommandResult {
     const name = tokens[3];
     const url = tokens[4];
     if (!name || !url) return fail(state, "uso: git remote add <nome> <url>");
-    if (name in state.remotes) return fail(state, `fatal: remote ${name} already exists.`);
+    if (name in state.remotes) return fail(state, `fatal: o remote ${name} já existe.`);
     state.remotes[name] = url;
     return ok(state, [], "git remote add");
   }
@@ -613,7 +616,7 @@ function resolveRemoteAndBranch(
   if (!up) {
     return fail(
       state,
-      `fatal: The current branch ${branchName} has no upstream branch.`,
+      `fatal: a branch atual ${branchName} não tem upstream configurado.`,
       `dica: configure com 'git push -u origin ${branchName}'.`
     );
   }
@@ -635,7 +638,7 @@ function handlePush(tokens: string[], state: RepoState): CommandResult {
   const { remoteName, remoteBranch } = resolved;
 
   if (!(remoteName in state.remotes)) {
-    return fail(state, `fatal: '${remoteName}' does not appear to be a git repository`);
+    return fail(state, `fatal: '${remoteName}' não parece ser um repositório git`);
   }
 
   const localTip = state.branches[branchName];
@@ -649,8 +652,8 @@ function handlePush(tokens: string[], state: RepoState): CommandResult {
   if (remoteTip && remoteTip !== localTip && !isAncestor(state, remoteTip, localTip)) {
     return fail(
       state,
-      `! [rejected]        ${branchName} -> ${remoteBranch} (fetch first)`,
-      `error: failed to push some refs to '${remoteName}'`,
+      `! [rejeitado]        ${branchName} -> ${remoteBranch} (dê fetch primeiro)`,
+      `error: falha ao enviar algumas referências para '${remoteName}'`,
       "dica: o remoto tem commits que você não tem localmente. Rode 'git fetch' e depois 'git merge' (ou use 'git pull')."
     );
   }
@@ -659,10 +662,10 @@ function handlePush(tokens: string[], state: RepoState): CommandResult {
   state.trackingBranches[ref] = localTip;
 
   const setUpstream = tokens.includes("-u") || tokens.includes("--set-upstream");
-  const lines = [`To ${remoteName}`, `   ${branchName} -> ${remoteBranch}`];
+  const lines = [`Para ${remoteName}`, `   ${branchName} -> ${remoteBranch}`];
   if (setUpstream) {
     state.upstream[branchName] = ref;
-    lines.push(`branch '${branchName}' set up to track '${ref}'.`);
+    lines.push(`branch '${branchName}' configurada para rastrear '${ref}'.`);
   }
 
   return ok(state, lines, setUpstream ? "git push -u" : "git push");
@@ -674,7 +677,7 @@ function handleFetch(tokens: string[], state: RepoState): CommandResult {
 
   const remoteName = tokens[2] && !tokens[2].startsWith("-") ? tokens[2] : "origin";
   if (!(remoteName in state.remotes)) {
-    return fail(state, `fatal: '${remoteName}' does not appear to be a git repository`);
+    return fail(state, `fatal: '${remoteName}' não parece ser um repositório git`);
   }
 
   const prefix = `${remoteName}/`;
@@ -688,9 +691,9 @@ function handleFetch(tokens: string[], state: RepoState): CommandResult {
   });
 
   if (updated.length === 0) {
-    return ok(state, ["Already up to date."], "git fetch");
+    return ok(state, ["Já está tudo atualizado."], "git fetch");
   }
-  return ok(state, [`From ${remoteName}`, ...updated.map((ref) => `   ..  ${ref}`)], "git fetch");
+  return ok(state, [`De ${remoteName}`, ...updated.map((ref) => `   ..  ${ref}`)], "git fetch");
 }
 
 function handlePull(tokens: string[], state: RepoState): CommandResult {
@@ -707,7 +710,7 @@ function handlePull(tokens: string[], state: RepoState): CommandResult {
   const { remoteName, remoteBranch } = resolved;
 
   if (!(remoteName in state.remotes)) {
-    return fail(state, `fatal: '${remoteName}' does not appear to be a git repository`);
+    return fail(state, `fatal: '${remoteName}' não parece ser um repositório git`);
   }
 
   const fetchResult = handleFetch(["git", "fetch", remoteName], state);
@@ -730,7 +733,7 @@ function handleClone(tokens: string[], state: RepoState): CommandResult {
   const prefix = `${remoteName}/`;
   const refs = Object.entries(state.remoteBranches).filter(([ref]) => ref.startsWith(prefix));
   if (refs.length === 0) {
-    return fail(state, "fatal: repository not found");
+    return fail(state, "fatal: repositório não encontrado");
   }
 
   state.initialized = true;
@@ -746,5 +749,5 @@ function handleClone(tokens: string[], state: RepoState): CommandResult {
   const headBranch = "main" in state.branches ? "main" : refs[0][0].slice(prefix.length);
   state.head = { type: "branch", name: headBranch };
 
-  return ok(state, [`Cloning into '${url}'...`, "done."], "git clone");
+  return ok(state, [`Clonando em '${url}'...`, "concluído."], "git clone");
 }
