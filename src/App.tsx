@@ -143,7 +143,7 @@ export default function App() {
       <main className="app-main">
         <section className="app-workspace">
           <Graph state={repoState} />
-          <Terminal onRun={handleRun} log={log} setLog={setLog} />
+          <Terminal challenge={challenge} onRun={handleRun} log={log} setLog={setLog} />
         </section>
         <aside className="app-sidebar">
           <Dictionary unlocked={unlocked} />

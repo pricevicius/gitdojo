@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import type { Challenge } from "../data/challenges";
 
 interface LogLine {
   kind: "input" | "output" | "error";
@@ -6,12 +7,13 @@ interface LogLine {
 }
 
 interface Props {
+  challenge: Challenge;
   onRun: (command: string) => { ok: boolean; output: string[] };
   log: LogLine[];
   setLog: React.Dispatch<React.SetStateAction<LogLine[]>>;
 }
 
-export default function Terminal({ onRun, log, setLog }: Props) {
+export default function Terminal({ challenge, onRun, log, setLog }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
@@ -105,6 +107,11 @@ export default function Terminal({ onRun, log, setLog }: Props) {
       {isOpen && (
         <div className="spotlight-backdrop" onClick={() => setIsOpen(false)}>
           <div className="spotlight-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="spotlight-challenge">
+              <span className="spotlight-challenge-trilha">{challenge.trilha}</span>
+              <h3>{challenge.title}</h3>
+              <p>{challenge.description}</p>
+            </div>
             <form onSubmit={handleSubmit} className="spotlight-input-row">
               <span className="prompt">$</span>
               <input

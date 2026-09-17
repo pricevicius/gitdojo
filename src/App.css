@@ -254,6 +254,33 @@
   font-family: monospace;
   animation: spotlight-pop-in 0.15s ease-out;
 }
+.spotlight-challenge {
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.spotlight-challenge-trilha {
+  display: inline-block;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.spotlight-challenge h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.spotlight-challenge p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
 .spotlight-input-row {
   display: flex;
   align-items: center;
