@@ -186,7 +186,7 @@ function handleLog(state: RepoState): CommandResult {
   const lines: string[] = [];
   let cursor: string | null = currentCommit(state);
   if (!cursor) {
-    return ok(state, ["fatal: your current branch does not have any commits yet"], "git log");
+    return fail(state, "fatal: your current branch does not have any commits yet");
   }
   while (cursor) {
     const c: Commit = state.commits[cursor];
