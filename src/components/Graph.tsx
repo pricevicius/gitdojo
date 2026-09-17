@@ -26,7 +26,10 @@ export default function Graph({ state }: Props) {
   }
 
   const width = Math.max(360, layout.maxDepth * COL_W + MARGIN_X * 2 + 40);
-  const height = Math.max(200, layout.maxLane * ROW_H + MARGIN_Y * 2 + 60);
+  const height = Math.max(
+    200,
+    layout.maxLane * ROW_H + MARGIN_Y * 2 + 60 + Math.max(0, layout.maxTagsOnCommit - 1) * 24
+  );
 
   return (
     <svg className="graph-svg" viewBox={`0 0 ${width} ${height}`} width="100%">
@@ -153,16 +156,21 @@ function computeLayout(state: RepoState) {
   });
 
   const tagLabels: { name: string; x: number; y: number; width: number }[] = [];
-  Object.entries(state.tags).forEach(([name, tag], i) => {
+  const tagsPerCommit: Record<string, number> = {};
+  let maxTagsOnCommit = 0;
+  Object.entries(state.tags).forEach(([name, tag]) => {
     const pos = positions[tag.commit];
     if (!pos) return;
+    const i = tagsPerCommit[tag.commit] ?? 0;
+    tagsPerCommit[tag.commit] = i + 1;
+    maxTagsOnCommit = Math.max(maxTagsOnCommit, i + 1);
     tagLabels.push({
       name,
       x: pos.x - 30,
-      y: pos.y + 54 + i * 0,
+      y: pos.y + 54 + i * 24,
       width: Math.max(50, name.length * 8 + 30),
     });
   });
 
-  return { positions, edges, branchLabels, tagLabels, maxDepth, maxLane };
+  return { positions, edges, branchLabels, tagLabels, maxDepth, maxLane, maxTagsOnCommit };
 }
