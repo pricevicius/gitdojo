@@ -413,17 +413,44 @@
   color: var(--text-dim);
   font-size: 13px;
 }
-.dictionary-category h3 {
+.dictionary-category-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px 0 8px;
+  margin-top: 6px;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-dim);
-  margin: 14px 0 8px;
+}
+.dictionary-category-header:hover {
+  color: var(--text);
+}
+.dictionary-category-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.dictionary-chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.dictionary-chevron.open {
+  transform: rotate(90deg);
 }
 .dictionary-grid {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 6px;
 }
 .dict-card {
   border-radius: 8px;

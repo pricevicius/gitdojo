@@ -198,7 +198,7 @@ export default function App() {
           />
         </section>
         <aside className="app-sidebar">
-          <Dictionary unlocked={unlocked} />
+          <Dictionary unlocked={unlocked} currentTrilha={challenge.trilha} />
         </aside>
       </main>
     </div>
