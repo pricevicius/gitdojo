@@ -13,13 +13,45 @@ interface LogLine {
   text: string;
 }
 
-const PROGRESS_KEY = "gitdojo_challenge_index";
+const PROGRESS_KEY = "gitdojo_challenge_id";
+const LEGACY_PROGRESS_KEY = "gitdojo_challenge_index";
 const UNLOCKED_KEY = "gitdojo_unlocked_commands";
 
+/**
+ * Ordem dos desafios antes de 'git merge' entrar na trilha Branching. Versões
+ * antigas salvavam o progresso como índice, então inserir um desafio no meio
+ * movia o jogador de lugar; esta lista converte aquele índice no id certo.
+ */
+const LEGACY_ORDER = [
+  "init-1",
+  "add-1",
+  "commit-1",
+  "log-1",
+  "branch-1",
+  "checkout-1",
+  "checkout-b-1",
+  "branch-d-1",
+  "tag-1",
+  "tag-a-1",
+];
+
+function indexOfChallenge(id: string | null | undefined): number {
+  if (!id) return 0;
+  const i = CHALLENGES.findIndex((c) => c.id === id);
+  return i === -1 ? 0 : i;
+}
+
 function loadProgress(): number {
-  const raw = localStorage.getItem(PROGRESS_KEY);
-  const n = raw ? parseInt(raw, 10) : 0;
-  return Number.isFinite(n) && n >= 0 && n < CHALLENGES.length ? n : 0;
+  try {
+    const savedId = localStorage.getItem(PROGRESS_KEY);
+    if (savedId) return indexOfChallenge(savedId);
+
+    const legacyIndex = localStorage.getItem(LEGACY_PROGRESS_KEY);
+    if (legacyIndex) return indexOfChallenge(LEGACY_ORDER[parseInt(legacyIndex, 10)]);
+  } catch {
+    // localStorage indisponível (aba anônima, cookies bloqueados): começa do zero.
+  }
+  return 0;
 }
 
 function loadUnlocked(): Set<string> {
@@ -42,11 +74,20 @@ export default function App() {
   const [unlocked, setUnlocked] = useState<Set<string>>(loadUnlocked);
 
   useEffect(() => {
-    localStorage.setItem(PROGRESS_KEY, String(challengeIndex));
+    try {
+      localStorage.setItem(PROGRESS_KEY, CHALLENGES[challengeIndex].id);
+      localStorage.removeItem(LEGACY_PROGRESS_KEY);
+    } catch {
+      // sem localStorage o progresso simplesmente não persiste.
+    }
   }, [challengeIndex]);
 
   useEffect(() => {
-    localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...unlocked]));
+    try {
+      localStorage.setItem(UNLOCKED_KEY, JSON.stringify([...unlocked]));
+    } catch {
+      // idem: o dicionário continua funcionando, só não sobrevive ao reload.
+    }
   }, [unlocked]);
 
   const solved = challenge.goal(repoState);

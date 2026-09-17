@@ -72,6 +72,13 @@ export const DICTIONARY: Record<string, DictionaryEntry> = {
     short: "Cria e troca para uma nova branch (equivalente a checkout -b).",
     example: "git switch -c feature-login",
   },
+  "git merge": {
+    command: "git merge <branch>",
+    category: "Branching",
+    short:
+      "Incorpora o histórico de outra branch na branch atual. Se a sua branch não avançou, é um fast-forward (só move o ponteiro); se as duas histórias divergiram, nasce um commit de merge com dois pais.",
+    example: "git merge feature-login",
+  },
   "git tag": {
     command: "git tag <nome>",
     category: "Tags",

@@ -54,6 +54,41 @@ function withTwoCommits(): RepoState {
   return s;
 }
 
+/** main parada em c1; feature-login um commit à frente → merge é fast-forward. */
+function withBranchAhead(): RepoState {
+  const s = withOneCommit();
+  s.commitCounter = 2;
+  s.commits["c2"] = {
+    id: "c2",
+    parentIds: ["c1"],
+    message: "tela de login",
+    createdOnBranch: "feature-login",
+  };
+  s.branches["feature-login"] = "c2";
+  return s;
+}
+
+/** main e feature-login avançaram cada uma por seu lado → merge precisa de commit de merge. */
+function withDivergedBranches(): RepoState {
+  const s = withOneCommit();
+  s.commitCounter = 3;
+  s.commits["c2"] = {
+    id: "c2",
+    parentIds: ["c1"],
+    message: "ajusta o header",
+    createdOnBranch: "main",
+  };
+  s.commits["c3"] = {
+    id: "c3",
+    parentIds: ["c1"],
+    message: "tela de login",
+    createdOnBranch: "feature-login",
+  };
+  s.branches["main"] = "c2";
+  s.branches["feature-login"] = "c3";
+  return s;
+}
+
 export const CHALLENGES: Challenge[] = [
   {
     id: "init-1",
@@ -135,6 +170,29 @@ export const CHALLENGES: Challenge[] = [
       "feature-cart" in s.branches &&
       s.head.type === "branch" &&
       s.head.name === "feature-cart",
+  },
+  {
+    id: "merge-ff-1",
+    trilha: "Branching",
+    title: "Traga a feature de volta",
+    description:
+      "'feature-login' tem um commit que 'main' ainda não tem, e 'main' não avançou desde que a branch nasceu. Você está em 'main': incorpore o trabalho da feature.",
+    hint: "git merge feature-login  (aqui o git só avança o ponteiro: fast-forward)",
+    setup: () => withBranchAhead(),
+    goal: (s) => s.branches["main"] === "c2",
+  },
+  {
+    id: "merge-1",
+    trilha: "Branching",
+    title: "Junte históricos que divergiram",
+    description:
+      "Desta vez 'main' também avançou enquanto 'feature-login' era desenvolvida. Você está em 'main': junte as duas histórias. Repare no grafo: o git vai precisar criar um commit novo, com dois pais.",
+    hint: "git merge feature-login",
+    setup: () => withDivergedBranches(),
+    goal: (s) => {
+      const tip = s.branches["main"];
+      return !!tip && s.commits[tip]?.parentIds.length === 2;
+    },
   },
   {
     id: "branch-d-1",

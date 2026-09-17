@@ -65,6 +65,8 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
       return handleCheckout(tokens, state);
     case "switch":
       return handleSwitch(tokens, state);
+    case "merge":
+      return handleMerge(tokens, state);
     case "tag":
       return handleTag(tokens, state);
     default:
@@ -276,6 +278,102 @@ function handleSwitch(tokens: string[], state: RepoState): CommandResult {
   }
   state.head = { type: "branch", name };
   return ok(state, [`Switched to branch '${name}'`], "git switch");
+}
+
+/** True se `ancestorId` for alcançável a partir de `descendantId` seguindo os pais. */
+function isAncestor(state: RepoState, ancestorId: string, descendantId: string): boolean {
+  const seen = new Set<string>();
+  const stack = [descendantId];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (id === ancestorId) return true;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const commit = state.commits[id];
+    if (commit) stack.push(...commit.parentIds);
+  }
+  return false;
+}
+
+/** Primeiro argumento posicional de `git merge`, ignorando flags e o valor de -m. */
+function mergeTarget(tokens: string[]): string | null {
+  const rest = tokens.slice(2);
+  for (let i = 0; i < rest.length; i += 1) {
+    const token = rest[i];
+    if (token === "-m") {
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("-")) continue;
+    return token;
+  }
+  return null;
+}
+
+function handleMerge(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (state.head.type === "detached") {
+    return fail(state, "não é possível fazer merge em HEAD destacado neste tutorial (faça checkout de uma branch)");
+  }
+
+  const name = mergeTarget(tokens);
+  if (!name) {
+    return fail(state, "especifique a branch a ser incorporada (ex: git merge feature-login)");
+  }
+  if (!(name in state.branches)) {
+    return fail(state, `merge: ${name} - not something we can merge`);
+  }
+
+  const into = state.head.name;
+  if (name === into) {
+    return fail(state, `fatal: não é possível fazer merge de '${name}' nela mesma`);
+  }
+
+  const targetTip = state.branches[name];
+  if (!targetTip) {
+    return ok(state, ["Already up to date."], "git merge");
+  }
+
+  const currentTip = currentCommit(state);
+
+  // A outra branch já está inteira no histórico atual: não há o que trazer.
+  if (currentTip && isAncestor(state, targetTip, currentTip)) {
+    return ok(state, ["Already up to date."], "git merge");
+  }
+
+  // Fast-forward: a branch atual não tem nenhum commit que a outra já não tenha,
+  // então basta avançar o ponteiro — nenhum commit novo é criado.
+  const noFf = tokens.includes("--no-ff");
+  if (!currentTip || (!noFf && isAncestor(state, currentTip, targetTip))) {
+    state.branches[into] = targetTip;
+    return ok(
+      state,
+      currentTip
+        ? [`Updating ${currentTip}..${targetTip}`, "Fast-forward"]
+        : [`Updating ${targetTip}`, "Fast-forward"],
+      "git merge"
+    );
+  }
+
+  // Históricos divergiram: nasce um commit de merge, com os dois tips como pais.
+  const message = extractMessage(tokens, "-m") ?? `Merge branch '${name}' into ${into}`;
+  state.commitCounter += 1;
+  const id = `c${state.commitCounter}`;
+  state.commits[id] = {
+    id,
+    parentIds: [currentTip, targetTip],
+    message,
+    createdOnBranch: into,
+  };
+  state.branches[into] = id;
+
+  return ok(
+    state,
+    ["Merge made by the 'ort' strategy.", `[${into} ${id}] ${message}`],
+    "git merge"
+  );
 }
 
 function handleTag(tokens: string[], state: RepoState): CommandResult {
