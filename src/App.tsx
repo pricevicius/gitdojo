@@ -188,8 +188,9 @@ export default function App() {
           <Graph state={repoState} />
           <Terminal
             challenge={challenge}
+            solved={solved}
             onRun={handleRun}
-            onSkip={handleNext}
+            onNext={handleNext}
             log={log}
             setLog={setLog}
             isOpen={terminalOpen}

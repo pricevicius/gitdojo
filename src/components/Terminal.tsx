@@ -8,8 +8,9 @@ interface LogLine {
 
 interface Props {
   challenge: Challenge;
+  solved: boolean;
   onRun: (command: string) => { ok: boolean; output: string[] };
-  onSkip: () => void;
+  onNext: () => void;
   log: LogLine[];
   setLog: React.Dispatch<React.SetStateAction<LogLine[]>>;
   isOpen: boolean;
@@ -18,8 +19,9 @@ interface Props {
 
 export default function Terminal({
   challenge,
+  solved,
   onRun,
-  onSkip,
+  onNext,
   log,
   setLog,
   isOpen,
@@ -118,31 +120,37 @@ export default function Terminal({
         <div className="spotlight-backdrop" onClick={() => setIsOpen(false)}>
           <div className="spotlight-modal" onClick={(e) => e.stopPropagation()}>
             <div className="spotlight-challenge">
-              <div className="spotlight-challenge-top">
-                <span className="spotlight-challenge-trilha">{challenge.trilha}</span>
-                <button type="button" className="spotlight-skip" onClick={onSkip}>
-                  essa é fácil, já sei →
-                </button>
-              </div>
+              <span className="spotlight-challenge-trilha">{challenge.trilha}</span>
               <h3>{challenge.title}</h3>
               <p>{challenge.description}</p>
             </div>
-            <form onSubmit={handleSubmit} className="spotlight-input-row">
-              <span className="prompt">$</span>
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  setHistoryIndex(null);
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="digite um comando git..."
-                spellCheck={false}
-                autoComplete="off"
-              />
-              <kbd>esc</kbd>
-            </form>
+
+            {solved ? (
+              <div className="spotlight-solved">
+                <span>✅ Resolvido!</span>
+                <button type="button" className="btn-primary" onClick={onNext}>
+                  Próximo desafio →
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="spotlight-input-row">
+                <span className="prompt">$</span>
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setHistoryIndex(null);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="digite um comando git..."
+                  spellCheck={false}
+                  autoComplete="off"
+                />
+                <kbd>esc</kbd>
+              </form>
+            )}
+
             {recentLog.length > 0 && (
               <div className="spotlight-results">
                 {recentLog.map((line, i) => (
