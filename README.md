@@ -38,6 +38,7 @@ Outros comandos úteis:
 
 ```bash
 npm run build      # build de produção em dist/
+npm run test        # testes do engine e dos desafios (vitest)
 npx tsc --noEmit   # type-check sem gerar arquivos
 ```
 
