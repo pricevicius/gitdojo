@@ -259,11 +259,27 @@ function handleCheckout(tokens: string[], state: RepoState): CommandResult {
 
   const name = tokens[2];
   if (!name) return fail(state, "especifique uma branch");
-  if (!(name in state.branches)) {
-    return fail(state, `error: pathspec '${name}' did not match any file(s) known to git`);
+  if (name in state.branches) {
+    state.head = { type: "branch", name };
+    return ok(state, [`Switched to branch '${name}'`], "git checkout");
   }
-  state.head = { type: "branch", name };
-  return ok(state, [`Switched to branch '${name}'`], "git checkout");
+  if (name in state.commits) {
+    state.head = { type: "detached", commit: name };
+    return ok(
+      state,
+      [
+        `Note: switching to '${name}'.`,
+        "",
+        "You are in 'detached HEAD' state. You can look around, make experimental",
+        "changes and commit them, and you can discard any commits you make in this",
+        "state without impacting any branches by switching back to a branch.",
+        "",
+        `HEAD is now at ${name.slice(0, 7)}`,
+      ],
+      "git checkout (detached)"
+    );
+  }
+  return fail(state, `error: pathspec '${name}' did not match any file(s) known to git`);
 }
 
 function handleSwitch(tokens: string[], state: RepoState): CommandResult {
