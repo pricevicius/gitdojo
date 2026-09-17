@@ -132,7 +132,7 @@ export const CHALLENGES: Challenge[] = [
     description: "Este repositório já tem commits. Liste o histórico a partir do commit atual.",
     hint: "Você quer enxergar o passado do repositório. Qual subcomando do git mostra a lista de commits já gravados?",
     setup: () => withTwoCommits(),
-    goal: () => true,
+    goal: (s) => s.lastCommand === "log",
   },
   {
     id: "branch-1",

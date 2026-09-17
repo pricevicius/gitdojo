@@ -48,30 +48,37 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
   const sub = tokens[1];
   const state = clone(prev);
 
-  switch (sub) {
-    case "init":
-      return handleInit(state);
-    case "status":
-      return handleStatus(state);
-    case "add":
-      return handleAdd(tokens, state);
-    case "commit":
-      return handleCommit(tokens, state);
-    case "log":
-      return handleLog(state);
-    case "branch":
-      return handleBranch(tokens, state);
-    case "checkout":
-      return handleCheckout(tokens, state);
-    case "switch":
-      return handleSwitch(tokens, state);
-    case "merge":
-      return handleMerge(tokens, state);
-    case "tag":
-      return handleTag(tokens, state);
-    default:
-      return fail(state, `git: '${sub}' não é um comando suportado neste simulador ainda.`);
+  const result = (() => {
+    switch (sub) {
+      case "init":
+        return handleInit(state);
+      case "status":
+        return handleStatus(state);
+      case "add":
+        return handleAdd(tokens, state);
+      case "commit":
+        return handleCommit(tokens, state);
+      case "log":
+        return handleLog(state);
+      case "branch":
+        return handleBranch(tokens, state);
+      case "checkout":
+        return handleCheckout(tokens, state);
+      case "switch":
+        return handleSwitch(tokens, state);
+      case "merge":
+        return handleMerge(tokens, state);
+      case "tag":
+        return handleTag(tokens, state);
+      default:
+        return fail(state, `git: '${sub}' não é um comando suportado neste simulador ainda.`);
+    }
+  })();
+
+  if (result.ok) {
+    result.state.lastCommand = sub;
   }
+  return result;
 }
 
 function requireInit(state: RepoState): CommandResult | null {

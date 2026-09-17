@@ -24,6 +24,7 @@ export interface RepoState {
   workingChanges: string[];
   tags: Record<string, Tag>;
   commitCounter: number;
+  lastCommand: string | null;
 }
 
 export interface CommandResult {
@@ -43,5 +44,6 @@ export function createInitialState(): RepoState {
     workingChanges: [],
     tags: {},
     commitCounter: 0,
+    lastCommand: null,
   };
 }
