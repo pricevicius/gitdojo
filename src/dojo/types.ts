@@ -50,6 +50,8 @@ export interface DojoPreface {
 export interface Dojo<TState> {
   /** Bate com Domain.slug no backend de ranking (ver docs/PLANO_RANKING.md). */
   domainSlug: string;
+  /** Primeiro rótulo do hostname que abre esse dojo direto, ex. "git" em git.odojo.com.br. */
+  subdomain: string;
   label: string;
   /** Nome do binário digitado no terminal (ex. "git", "wp") — só para placeholder/UI. */
   commandPrefix: string;

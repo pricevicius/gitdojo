@@ -1,19 +1,11 @@
 import { useEffect, useState } from "react";
-import type { Dojo } from "./dojo/types";
-import { gitDojo } from "./dojo/git";
-import { wpDojo } from "./dojo/wp";
+import { DOJOS, type AnyDojo } from "./dojo/registry";
 import Terminal from "./components/Terminal";
 import Dictionary from "./components/Dictionary";
 import ChallengePanel from "./components/ChallengePanel";
 import ChallengeNav from "./components/ChallengeNav";
 import "./App.css";
 
-// Lista de dojos plugados na aplicação. Cada um tem seu próprio TState (RepoState,
-// WpState, ...); o `any` aqui apaga esse tipo de propósito para permitir uma lista
-// heterogênea — o runtime garante o invariante de que o estado sempre vem do
-// createInitialState()/setup() do próprio dojo ativo, nunca é misturado entre dojos.
-type AnyDojo = Dojo<any>;
-const DOJOS: AnyDojo[] = [gitDojo, wpDojo];
 const ACTIVE_DOJO_KEY = "gitdojo_active_dojo";
 
 interface LogLine {
@@ -69,7 +61,11 @@ function loadProgressIndex(dojo: AnyDojo): number {
   return 0;
 }
 
-function loadActiveDojoIndex(): number {
+function loadActiveDojoIndex(forcedSlug?: string): number {
+  if (forcedSlug) {
+    const forced = DOJOS.findIndex((d) => d.domainSlug === forcedSlug);
+    if (forced !== -1) return forced;
+  }
   try {
     const slug = localStorage.getItem(ACTIVE_DOJO_KEY);
     if (!slug) return 0;
@@ -100,8 +96,13 @@ function loadSolved(): Set<string> {
   }
 }
 
-export default function App() {
-  const [dojoIndex, setDojoIndex] = useState(loadActiveDojoIndex);
+interface AppProps {
+  /** Dojo forçado pelo subdomínio de entrada (ver src/routing.ts), ex. "git". */
+  forcedDojoSlug?: string;
+}
+
+export default function App({ forcedDojoSlug }: AppProps = {}) {
+  const [dojoIndex, setDojoIndex] = useState(() => loadActiveDojoIndex(forcedDojoSlug));
   const dojo = DOJOS[dojoIndex];
 
   const [challengeIndex, setChallengeIndex] = useState(() => loadProgressIndex(dojo));
@@ -194,6 +195,19 @@ export default function App() {
   function handleSelectDojo(index: number) {
     if (index === dojoIndex) return;
     const nextDojo = DOJOS[index];
+
+    // Em git.odojo.com.br / wpcli.odojo.com.br a URL precisa refletir o dojo ativo, então
+    // trocar de dojo é navegação de verdade pro subdomínio dele, não só troca de estado.
+    // Fora desses domínios (localhost, preview do Pages) não há subdomínio de produção pra
+    // ir, então mantém a troca em memória, como antes.
+    const currentSubdomain = window.location.hostname.split(".")[0];
+    const isProdDojoHost = DOJOS.some((d) => d.subdomain === currentSubdomain);
+    if (isProdDojoHost) {
+      // eslint-disable-next-line react/immutability -- navegação de browser, não estado React
+      window.location.href = `https://${nextDojo.subdomain}.odojo.com.br`;
+      return;
+    }
+
     const nextChallengeIndex = loadProgressIndex(nextDojo);
     setDojoIndex(index);
     setChallengeIndex(nextChallengeIndex);

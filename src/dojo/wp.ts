@@ -8,6 +8,7 @@ import WpStatus from "../components/WpStatus";
 
 export const wpDojo: Dojo<WpState> = {
   domainSlug: "wp-cli",
+  subdomain: "wpcli",
   label: "WP-CLI",
   commandPrefix: "wp",
   trilhasOrder: WP_TRILHAS_ORDER,
