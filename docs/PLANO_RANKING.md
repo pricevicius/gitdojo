@@ -68,11 +68,14 @@ depois sem mexer no que já existe:
   OAuth), `passwordHash` (só usado quando `provider = "password"`), `email` opcional.
   Único por `(provider, providerAccountId)`. Login com Google/GitHub no futuro só
   adiciona linhas nessa tabela — nenhuma mudança no `User` nem na sessão.
-- `Domain` — id, slug (`"git"`), name. Seed inicial com uma linha só.
-- `Challenge` — id/slug (bate com `Challenge.id` de `src/data/challenges.ts`, ex.
-  `"init-1"`), domainId, trilha. O backend não reimplementa o `goal()` — ele só valida
-  que o `challengeId` existe e confia no `commandCount` que o frontend manda (aceitável
-  para um projeto educacional interno; anti-cheat não é meta desta fase).
+- `Domain` — id, slug (`"git"`), name. Seed inicial com uma linha só. Único por `slug`.
+- `Challenge` — id, slug (bate com `Challenge.id` de `src/data/challenges.ts`, ex.
+  `"init-1"`), domainId, trilha. **Único por `(domainId, slug)`, não por `slug` isolado**:
+  o slug só é natural dentro de um domínio (`"init-1"` de git e `"init-1"` de um futuro
+  dojo de wp-cli são desafios diferentes) — um `@unique` global no slug colidiria no dia
+  em que um segundo domínio for adicionado. O backend não reimplementa o `goal()` — ele só
+  valida que o `challengeId` existe e confia no `commandCount` que o frontend manda
+  (aceitável para um projeto educacional interno; anti-cheat não é meta desta fase).
 - `Attempt` — id, userId, challengeId, commandCount, completedAt. Log append-only, uma
   linha por vez que o desafio é resolvido (inclusive revisitas).
 - `ChallengeBest` — (userId, challengeId) único, bestAttempts, timesCompleted. Mantido
