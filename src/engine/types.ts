@@ -41,6 +41,19 @@ export interface RepoState {
   trackingBranches: Record<string, string | null>;
   /** Branch local -> ref remota que ela rastreia, ex: "main" -> "origin/main". */
   upstream: Record<string, string>;
+  /**
+   * Submódulos registrados, chave é o path (ex. "libs/ui-kit"). `commit: null`
+   * significa que o .gitmodules já sabe do submódulo (como logo após um clone)
+   * mas o conteúdo ainda não foi trazido — só `update` preenche isso.
+   */
+  submodules: Record<string, { url: string; commit: string | null; initialized: boolean }>;
+  /**
+   * Última ação de `git submodule` (add/init/update/status). Existe separado
+   * de `lastCommand` porque todo subcomando de submodule compartilha o mesmo
+   * `sub` ("submodule") — sem isso não daria pra diferenciar um `status` de
+   * um `update` só olhando o estado.
+   */
+  lastSubmoduleAction: string | null;
 }
 
 export interface CommandResult {
@@ -65,5 +78,7 @@ export function createInitialState(): RepoState {
     remoteBranches: {},
     trackingBranches: {},
     upstream: {},
+    submodules: {},
+    lastSubmoduleAction: null,
   };
 }

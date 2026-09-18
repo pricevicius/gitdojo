@@ -650,6 +650,70 @@ describe("git clone", () => {
   });
 });
 
+describe("git submodule", () => {
+  it("add registra o submódulo já inicializado", () => {
+    const result = runCommand(
+      "git submodule add https://github.com/exemplo/ui-kit.git libs/ui-kit",
+      init()
+    );
+    expect(result.ok).toBe(true);
+    expect(result.state.submodules["libs/ui-kit"]).toEqual({
+      url: "https://github.com/exemplo/ui-kit.git",
+      commit: "sub1",
+      initialized: true,
+    });
+  });
+
+  it("add falha sem url ou path", () => {
+    expect(runCommand("git submodule add", init()).ok).toBe(false);
+    expect(runCommand("git submodule add https://x.git", init()).ok).toBe(false);
+  });
+
+  it("add falha se o caminho já existe", () => {
+    const s = runCommand("git submodule add https://x.git libs/x", init()).state;
+    expect(runCommand("git submodule add https://y.git libs/x", s).ok).toBe(false);
+  });
+
+  it("init falha sem nenhum submódulo declarado", () => {
+    expect(runCommand("git submodule init", init()).ok).toBe(false);
+  });
+
+  it("init marca o submódulo como inicializado, sem trazer conteúdo", () => {
+    let s = init();
+    s = { ...s, submodules: { "libs/x": { url: "https://x.git", commit: null, initialized: false } } };
+    const result = runCommand("git submodule init", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.submodules["libs/x"].initialized).toBe(true);
+    expect(result.state.submodules["libs/x"].commit).toBeNull();
+  });
+
+  it("update falha sem nenhum submódulo inicializado", () => {
+    let s = init();
+    s = { ...s, submodules: { "libs/x": { url: "https://x.git", commit: null, initialized: false } } };
+    expect(runCommand("git submodule update", s).ok).toBe(false);
+  });
+
+  it("update traz o conteúdo de um submódulo já inicializado", () => {
+    let s = init();
+    s = { ...s, submodules: { "libs/x": { url: "https://x.git", commit: null, initialized: true } } };
+    const result = runCommand("git submodule update", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.submodules["libs/x"].commit).not.toBeNull();
+  });
+
+  it("status não muda nenhum submódulo, só marca lastSubmoduleAction", () => {
+    let s = init();
+    s = {
+      ...s,
+      submodules: { "libs/x": { url: "https://x.git", commit: "sub1", initialized: true } },
+    };
+    const result = runCommand("git submodule status", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.submodules).toEqual(s.submodules);
+    expect(result.state.lastSubmoduleAction).toBe("status");
+  });
+});
+
 describe("imutabilidade", () => {
   it("runCommand não muta o estado recebido", () => {
     const before = init();

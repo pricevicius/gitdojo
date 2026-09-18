@@ -86,6 +86,8 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
         return handlePull(tokens, state);
       case "clone":
         return handleClone(tokens, state);
+      case "submodule":
+        return handleSubmodule(tokens, state);
       default:
         return fail(state, `git: '${sub}' não é um comando suportado neste simulador ainda.`);
     }
@@ -750,4 +752,74 @@ function handleClone(tokens: string[], state: RepoState): CommandResult {
   state.head = { type: "branch", name: headBranch };
 
   return ok(state, [`Clonando em '${url}'...`, "concluído."], "git clone");
+}
+
+function handleSubmodule(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const action = tokens[2];
+
+  if (action === "add") {
+    const url = tokens[3];
+    const path = tokens[4];
+    if (!url || !path) return fail(state, "uso: git submodule add <url> <path>");
+    if (path in state.submodules) {
+      return fail(state, `fatal: '${path}' já existe no índice`);
+    }
+    state.submodules[path] = { url, commit: "sub1", initialized: true };
+    state.lastSubmoduleAction = "add";
+    return ok(state, [`Clonando em '${path}'...`, "concluído."], "git submodule add");
+  }
+
+  if (action === "init") {
+    const paths = Object.keys(state.submodules);
+    if (paths.length === 0) {
+      return fail(state, "Nenhum submódulo mapeado em .gitmodules para este caminho");
+    }
+    const target = tokens[3];
+    if (target && !(target in state.submodules)) {
+      return fail(state, `error: pathspec '${target}' não corresponde a nenhum submódulo conhecido`);
+    }
+    (target ? [target] : paths).forEach((p) => {
+      state.submodules[p].initialized = true;
+    });
+    state.lastSubmoduleAction = "init";
+    return ok(
+      state,
+      (target ? [target] : paths).map((p) => `Registrando submódulo '${p}' para o caminho '${p}'`),
+      "git submodule init"
+    );
+  }
+
+  if (action === "update") {
+    const initialized = Object.entries(state.submodules).filter(([, s]) => s.initialized);
+    if (initialized.length === 0) {
+      return fail(
+        state,
+        "Nenhum submódulo inicializado ainda.",
+        "dica: rode 'git submodule init' primeiro."
+      );
+    }
+    initialized.forEach(([, s]) => {
+      if (s.commit === null) s.commit = "sub1";
+    });
+    state.lastSubmoduleAction = "update";
+    return ok(
+      state,
+      initialized.map(([p]) => `Submódulo '${p}' já está no commit correto`),
+      "git submodule update"
+    );
+  }
+
+  if (action === "status" || !action) {
+    state.lastSubmoduleAction = "status";
+    const lines = Object.entries(state.submodules).map(([path, s]) => {
+      const marker = !s.initialized ? "-" : s.commit === null ? "+" : " ";
+      return `${marker}${(s.commit ?? "0000000000000000000000000000000000000000").slice(0, 40)} ${path}`;
+    });
+    return ok(state, lines, "git submodule status");
+  }
+
+  return fail(state, `git submodule: subcomando '${action}' não suportado`);
 }
