@@ -714,6 +714,154 @@ describe("git submodule", () => {
   });
 });
 
+describe("git stash", () => {
+  it("push guarda staged e workingChanges e limpa os dois", () => {
+    const s = { ...init(), staged: ["a.txt"], workingChanges: ["b.txt"] };
+    const result = runCommand("git stash", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.stash).toHaveLength(1);
+    expect(result.state.stash[0]).toMatchObject({ staged: ["a.txt"], workingChanges: ["b.txt"] });
+    expect(result.state.staged).toEqual([]);
+    expect(result.state.workingChanges).toEqual([]);
+    expect(result.unlockedCommand).toBe("git stash");
+  });
+
+  it("falha sem nenhuma alteração", () => {
+    expect(runCommand("git stash", init()).ok).toBe(false);
+  });
+
+  it("pop falha com a pilha vazia", () => {
+    expect(runCommand("git stash pop", init()).ok).toBe(false);
+  });
+
+  it("pop restaura e remove do topo da pilha", () => {
+    const s = {
+      ...init(),
+      stash: [{ message: "WIP", staged: ["a.txt"], workingChanges: ["b.txt"] }],
+    };
+    const result = runCommand("git stash pop", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.stash).toEqual([]);
+    expect(result.state.staged).toEqual(["a.txt"]);
+    expect(result.state.workingChanges).toEqual(["b.txt"]);
+  });
+
+  it("list não muda a pilha e marca lastCommandDetail", () => {
+    const s = { ...init(), stash: [{ message: "WIP", staged: [], workingChanges: ["b.txt"] }] };
+    const result = runCommand("git stash list", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.stash).toEqual(s.stash);
+    expect(result.state.lastCommand).toBe("stash");
+    expect(result.state.lastCommandDetail).toBe("list");
+  });
+});
+
+describe("git diff", () => {
+  it("sem --staged marca lastCommandDetail unstaged", () => {
+    const s = { ...init(), workingChanges: ["a.txt"] };
+    const result = runCommand("git diff", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.lastCommandDetail).toBe("unstaged");
+  });
+
+  it("com --staged marca lastCommandDetail staged", () => {
+    const s = { ...init(), staged: ["a.txt"] };
+    const result = runCommand("git diff --staged", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.lastCommandDetail).toBe("staged");
+  });
+});
+
+describe("git show", () => {
+  it("falha para um commit inexistente", () => {
+    expect(runCommand("git show cX", init()).ok).toBe(false);
+  });
+
+  it("marca lastCommandDetail com o id do commit", () => {
+    const s = commit(init());
+    const result = runCommand("git show c1", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.lastCommand).toBe("show");
+    expect(result.state.lastCommandDetail).toBe("c1");
+  });
+});
+
+describe("git rm", () => {
+  it("falha para um arquivo não rastreado", () => {
+    expect(runCommand("git rm x.txt", init()).ok).toBe(false);
+  });
+
+  it("remove de trackedFiles e prepara a remoção", () => {
+    const s = { ...init(), trackedFiles: ["x.txt"] };
+    const result = runCommand("git rm x.txt", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.trackedFiles).not.toContain("x.txt");
+    expect(result.state.staged).toContain("x.txt");
+  });
+});
+
+describe("git mv", () => {
+  it("falha para um arquivo não rastreado", () => {
+    expect(runCommand("git mv x.txt y.txt", init()).ok).toBe(false);
+  });
+
+  it("renomeia em trackedFiles e prepara o destino", () => {
+    const s = { ...init(), trackedFiles: ["x.txt"] };
+    const result = runCommand("git mv x.txt y.txt", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.trackedFiles).toEqual(["y.txt"]);
+    expect(result.state.staged).toContain("y.txt");
+  });
+});
+
+describe("git cherry-pick", () => {
+  it("falha para um commit inexistente", () => {
+    expect(runCommand("git cherry-pick cX", init()).ok).toBe(false);
+  });
+
+  it("cria um novo commit com o mesmo conteúdo do original", () => {
+    let s = init();
+    s.branches["feature"] = null;
+    s = { ...s, head: { type: "branch", name: "feature" } };
+    s = commit(s, "trabalho da feature");
+    s = { ...s, head: { type: "branch", name: "main" } };
+    const featureTip = s.branches["feature"]!;
+
+    const result = runCommand(`git cherry-pick ${featureTip}`, s);
+    expect(result.ok).toBe(true);
+    const newTip = result.state.branches["main"]!;
+    expect(newTip).not.toBe(featureTip);
+    expect(result.state.commits[newTip].message).toBe("trabalho da feature");
+  });
+});
+
+describe("git blame", () => {
+  it("falha sem argumento", () => {
+    expect(runCommand("git blame", init()).ok).toBe(false);
+  });
+
+  it("marca lastCommandDetail com o arquivo", () => {
+    const result = runCommand("git blame index.js", init());
+    expect(result.ok).toBe(true);
+    expect(result.state.lastCommand).toBe("blame");
+    expect(result.state.lastCommandDetail).toBe("index.js");
+  });
+});
+
+describe("git clean", () => {
+  it("falha sem -f", () => {
+    const s = { ...init(), untrackedFiles: ["debug.log"] };
+    expect(runCommand("git clean", s).ok).toBe(false);
+  });
+
+  it("-fd remove os arquivos não rastreados", () => {
+    const s = { ...init(), untrackedFiles: ["debug.log"] };
+    const result = runCommand("git clean -fd", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.untrackedFiles).toEqual([]);
+  });
+});
+
 describe("imutabilidade", () => {
   it("runCommand não muta o estado recebido", () => {
     const before = init();
