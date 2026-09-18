@@ -11,12 +11,28 @@ export interface WpSite {
   adminEmail: string;
 }
 
+export interface WpAsset {
+  active: boolean;
+  version: string;
+  updateAvailable: boolean;
+}
+
+export interface WpUser {
+  email: string;
+  role: string;
+}
+
 export interface WpState {
   downloaded: boolean;
   config: WpConfig | null;
   dbCreated: boolean;
   installed: boolean;
   site: WpSite | null;
+  plugins: Record<string, WpAsset>;
+  themes: Record<string, WpAsset>;
+  users: Record<string, WpUser>;
+  coreUpdateAvailable: boolean;
+  coreLanguageUpdateAvailable: boolean;
   lastCommand: string | null;
 }
 
@@ -34,6 +50,11 @@ export function createInitialWpState(): WpState {
     dbCreated: false,
     installed: false,
     site: null,
+    plugins: {},
+    themes: {},
+    users: {},
+    coreUpdateAvailable: false,
+    coreLanguageUpdateAvailable: false,
     lastCommand: null,
   };
 }

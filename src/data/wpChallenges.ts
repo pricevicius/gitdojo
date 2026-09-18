@@ -4,7 +4,12 @@ import type { DojoChallenge } from "../dojo/types";
 
 export type WpChallenge = DojoChallenge<WpState>;
 
-const WP_TRILHAS_ORDER = ["Fundamentos"] as const;
+const WP_TRILHAS_ORDER = [
+  "Fundamentos",
+  "Plugins e Temas",
+  "Atualizações",
+  "Usuários",
+] as const;
 export { WP_TRILHAS_ORDER };
 
 function withDownloaded(): WpState {
@@ -22,6 +27,37 @@ function withConfigured(): WpState {
 function withDbCreated(): WpState {
   const s = withConfigured();
   s.dbCreated = true;
+  return s;
+}
+
+/** Site já instalado, sem plugins/temas/usuários extras — ponto de partida das trilhas do dia a dia. */
+function withInstalledSite(): WpState {
+  const s = withDbCreated();
+  s.installed = true;
+  s.site = {
+    url: "https://meusite.local",
+    title: "Meu Site",
+    adminUser: "admin",
+    adminEmail: "admin@meusite.local",
+  };
+  return s;
+}
+
+function withOutdatedCore(): WpState {
+  const s = withInstalledSite();
+  s.coreUpdateAvailable = true;
+  return s;
+}
+
+function withOutdatedPlugin(): WpState {
+  const s = withInstalledSite();
+  s.plugins["akismet"] = { active: true, version: "4.0", updateAvailable: true };
+  return s;
+}
+
+function withOutdatedLanguage(): WpState {
+  const s = withInstalledSite();
+  s.coreLanguageUpdateAvailable = true;
   return s;
 }
 
@@ -65,5 +101,61 @@ export const WP_CHALLENGES: WpChallenge[] = [
     hint: "É o mesmo subcomando de baixar os arquivos ('core'), com outra ação. Ele espera --url, --title, --admin_user, --admin_password e --admin_email.",
     setup: () => withDbCreated(),
     goal: (s) => s.installed && s.site?.url === "https://meusite.local",
+  },
+  {
+    id: "plugin-install-1",
+    trilha: "Plugins e Temas",
+    title: "Instale e ative um plugin",
+    description:
+      "O site já está no ar. Instale o plugin 'akismet' e já ative-o, num único comando.",
+    hint: "Existe um subcomando 'plugin' com uma ação que instala a partir do repositório oficial do WordPress. Uma flag, sem valor, já ativa o plugin na mesma tacada.",
+    setup: () => withInstalledSite(),
+    goal: (s) => s.plugins["akismet"]?.active === true,
+  },
+  {
+    id: "theme-install-1",
+    trilha: "Plugins e Temas",
+    title: "Instale e ative um tema",
+    description: "Instale o tema 'twentytwentyfour' e já ative-o, num único comando.",
+    hint: "É o mesmo padrão do plugin, mas o subcomando é outro — pense na palavra em inglês para 'tema visual'.",
+    setup: () => withInstalledSite(),
+    goal: (s) => s.themes["twentytwentyfour"]?.active === true,
+  },
+  {
+    id: "core-update-1",
+    trilha: "Atualizações",
+    title: "Atualize o WordPress",
+    description: "Existe uma atualização do WordPress em si disponível. Aplique-a.",
+    hint: "É o mesmo subcomando que baixa e instala o WordPress ('core'), com uma terceira ação.",
+    setup: () => withOutdatedCore(),
+    goal: (s) => s.coreUpdateAvailable === false,
+  },
+  {
+    id: "plugin-update-1",
+    trilha: "Atualizações",
+    title: "Atualize todos os plugins",
+    description: "O plugin 'akismet' tem uma atualização disponível. Atualize todos os plugins de uma vez.",
+    hint: "Mesmo subcomando 'plugin' de instalar, ação de atualizar. Existe uma flag que aplica em todos os plugins instalados, sem precisar listar cada slug.",
+    setup: () => withOutdatedPlugin(),
+    goal: (s) => s.plugins["akismet"]?.updateAvailable === false,
+  },
+  {
+    id: "language-update-1",
+    trilha: "Atualizações",
+    title: "Atualize as traduções",
+    description: "As traduções do WordPress ficaram desatualizadas. Atualize-as.",
+    hint: "Existe um subcomando 'language', separado de 'core' e 'plugin', para lidar com traduções. A ação usada aqui é a mesma de atualizar o core, mas aplicada às traduções do 'core'.",
+    setup: () => withOutdatedLanguage(),
+    goal: (s) => s.coreLanguageUpdateAvailable === false,
+  },
+  {
+    id: "user-create-1",
+    trilha: "Usuários",
+    title: "Crie um usuário novo",
+    description:
+      "Você precisa dar acesso de edição de conteúdo (sem mexer em configurações do site) para uma pessoa nova: 'maria', email 'maria@meusite.local', papel 'editor'.",
+    hint: "Existe um subcomando 'user' com uma ação que cria contas, esperando login e email como argumentos posicionais, e uma flag --role para o papel.",
+    setup: () => withInstalledSite(),
+    goal: (s) => s.users["maria"]?.email === "maria@meusite.local" && s.users["maria"]?.role === "editor",
   },
 ];

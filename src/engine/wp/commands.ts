@@ -46,6 +46,18 @@ function requireFlags(flags: Record<string, string>, keys: string[]): string | n
   return `faltam flags obrigatórias: ${missing.map((k) => `--${k}`).join(", ")}`;
 }
 
+/** Flags booleanas (sem valor), ex. --activate, --all. */
+function hasFlag(tokens: string[], flag: string): boolean {
+  return tokens.includes(flag);
+}
+
+function requireInstalled(state: WpState): WpCommandResult | null {
+  if (!state.installed) {
+    return fail(state, "Erro: o WordPress ainda não foi instalado (rode 'wp core install' primeiro).");
+  }
+  return null;
+}
+
 export function runCommand(rawInput: string, prev: WpState): WpCommandResult {
   const input = rawInput.trim();
   if (!input) return fail(prev, "");
@@ -67,6 +79,14 @@ export function runCommand(rawInput: string, prev: WpState): WpCommandResult {
         return handleConfig(action, tokens, state);
       case "db":
         return handleDb(action, state);
+      case "plugin":
+        return handleAsset("plugin", action, tokens, state);
+      case "theme":
+        return handleAsset("theme", action, tokens, state);
+      case "user":
+        return handleUser(action, tokens, state);
+      case "language":
+        return handleLanguage(tokens, state);
       default:
         return fail(state, `wp: '${sub}' não é um comando suportado neste simulador ainda.`);
     }
@@ -114,7 +134,105 @@ function handleCore(action: string | undefined, tokens: string[], state: WpState
     return ok(state, ["6.4.3"], "wp core version");
   }
 
+  if (action === "update") {
+    const notInstalled = requireInstalled(state);
+    if (notInstalled) return notInstalled;
+    if (!state.coreUpdateAvailable) {
+      return ok(state, ["O WordPress já está atualizado."]);
+    }
+    state.coreUpdateAvailable = false;
+    return ok(state, ["Atualizando o WordPress...", "Sucesso: WordPress atualizado."], "wp core update");
+  }
+
   return fail(state, `wp core: subcomando '${action}' não suportado`);
+}
+
+/** wp plugin e wp theme têm o mesmo shape de comandos (install/update), só o dicionário muda. */
+function handleAsset(
+  kind: "plugin" | "theme",
+  action: string | undefined,
+  tokens: string[],
+  state: WpState
+): WpCommandResult {
+  const notInstalled = requireInstalled(state);
+  if (notInstalled) return notInstalled;
+
+  const assets = kind === "plugin" ? state.plugins : state.themes;
+
+  if (action === "install") {
+    const slug = tokens[3];
+    if (!slug) return fail(state, `uso: wp ${kind} install <slug> [--activate]`);
+    const activate = hasFlag(tokens, "--activate");
+    if (activate && kind === "theme") {
+      Object.values(state.themes).forEach((t) => {
+        t.active = false;
+      });
+    }
+    assets[slug] = { active: activate, version: "1.0.0", updateAvailable: false };
+    return ok(
+      state,
+      [`Instalando ${kind} '${slug}'...`, "Sucesso: instalado" + (activate ? " e ativado." : ".")],
+      activate ? `wp ${kind} install --activate` : `wp ${kind} install`
+    );
+  }
+
+  if (action === "update") {
+    const all = hasFlag(tokens, "--all");
+    if (all) {
+      const updated = Object.entries(assets).filter(([, a]) => a.updateAvailable);
+      updated.forEach(([, a]) => {
+        a.updateAvailable = false;
+      });
+      return ok(
+        state,
+        updated.length > 0
+          ? updated.map(([slug]) => `Sucesso: '${slug}' atualizado.`)
+          : ["Nenhuma atualização disponível."],
+        `wp ${kind} update --all`
+      );
+    }
+
+    const slug = tokens[3];
+    if (!slug || !(slug in assets)) {
+      return fail(state, `Erro: '${slug}' não está instalado.`);
+    }
+    assets[slug].updateAvailable = false;
+    return ok(state, [`Sucesso: '${slug}' atualizado.`], `wp ${kind} update`);
+  }
+
+  return fail(state, `wp ${kind}: subcomando '${action}' não suportado`);
+}
+
+function handleUser(action: string | undefined, tokens: string[], state: WpState): WpCommandResult {
+  const notInstalled = requireInstalled(state);
+  if (notInstalled) return notInstalled;
+
+  if (action !== "create") {
+    return fail(state, `wp user: subcomando '${action}' não suportado`);
+  }
+
+  const login = tokens[3];
+  const email = tokens[4];
+  if (!login || !email) return fail(state, "uso: wp user create <login> <email> [--role=<papel>]");
+  if (login in state.users) return fail(state, `Erro: o usuário '${login}' já existe.`);
+
+  const flags = parseFlags(tokens);
+  state.users[login] = { email, role: flags.role ?? "subscriber" };
+  return ok(state, [`Sucesso: criado usuário ${login}.`], "wp user create");
+}
+
+function handleLanguage(tokens: string[], state: WpState): WpCommandResult {
+  const notInstalled = requireInstalled(state);
+  if (notInstalled) return notInstalled;
+
+  if (tokens[2] !== "core" || tokens[3] !== "update") {
+    return fail(state, "wp language: só 'core update' é suportado neste simulador ainda.");
+  }
+  if (!state.coreLanguageUpdateAvailable) {
+    return ok(state, ["As traduções já estão atualizadas."]);
+  }
+  state.coreLanguageUpdateAvailable = false;
+  return ok(state, ["Sucesso: traduções atualizadas."], "wp language core update");
 }
 
 function handleConfig(action: string | undefined, tokens: string[], state: WpState): WpCommandResult {

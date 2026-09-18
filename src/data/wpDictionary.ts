@@ -27,4 +27,40 @@ export const WP_DICTIONARY: Record<string, DictionaryEntry> = {
     example:
       "wp core install --url=https://meusite.local --title=\"Meu Site\" --admin_user=admin --admin_password=senha --admin_email=admin@meusite.local",
   },
+  "wp plugin install --activate": {
+    command: "wp plugin install <slug> --activate",
+    category: "Plugins e Temas",
+    short: "Instala um plugin do repositório oficial do WordPress e já o ativa, num único comando.",
+    example: "wp plugin install akismet --activate",
+  },
+  "wp theme install --activate": {
+    command: "wp theme install <slug> --activate",
+    category: "Plugins e Temas",
+    short: "Instala um tema do repositório oficial do WordPress e já o ativa (desativando o anterior).",
+    example: "wp theme install twentytwentyfour --activate",
+  },
+  "wp core update": {
+    command: "wp core update",
+    category: "Atualizações",
+    short: "Atualiza os arquivos centrais do WordPress para a versão mais recente.",
+    example: "wp core update",
+  },
+  "wp plugin update --all": {
+    command: "wp plugin update --all",
+    category: "Atualizações",
+    short: "Atualiza todos os plugins instalados que têm uma versão nova disponível.",
+    example: "wp plugin update --all",
+  },
+  "wp language core update": {
+    command: "wp language core update",
+    category: "Atualizações",
+    short: "Atualiza os arquivos de tradução do WordPress para o idioma configurado no site.",
+    example: "wp language core update",
+  },
+  "wp user create": {
+    command: "wp user create <login> <email> --role=<papel>",
+    category: "Usuários",
+    short: "Cria um usuário novo no site, com o papel (permissões) indicado.",
+    example: "wp user create maria maria@meusite.local --role=editor",
+  },
 };
