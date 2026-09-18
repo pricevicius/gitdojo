@@ -62,6 +62,48 @@ src/
 
 ## Como contribuir
 
+### Criando um dojo novo (outra ferramenta de CLI)
+
+O projeto é multi-ferramenta: qualquer CLI (docker, kubectl, npm, ...) pode virar um dojo
+implementando o contrato `Dojo<TState>` definido em `src/dojo/types.ts` — o mesmo que git e
+wp-cli já implementam (`src/dojo/git.ts`, `src/dojo/wp.ts`). Para começar:
+
+```bash
+npm run create-dojo -- --slug docker --subdomain docker --label Docker --prefix docker
+```
+
+Isso gera o esqueleto todo (`src/engine/docker/`, `src/data/dockerChallenges.ts`,
+`src/data/dockerDictionary.ts`, `src/components/DockerVisualization.tsx`,
+`src/dojo/docker.ts`) e já registra o dojo em `src/dojo/registry.ts`. O que falta é
+substituir os stubs por conteúdo de verdade:
+
+1. Implemente os comandos reais em `src/engine/<slug>/commands.ts` (siga o padrão de
+   `src/engine/wp/commands.ts`).
+2. Escreva os desafios em `src/data/<slug>Challenges.ts`, cobrindo toda trilha declarada em
+   `<SLUG>_TRILHAS_ORDER`.
+3. Complete o dicionário em `src/data/<slug>Dictionary.ts` — uma entrada por comando
+   desbloqueável.
+4. Troque a visualização stub em `src/components/<Slug>Visualization.tsx` por algo que
+   represente o estado da ferramenta (ver `Graph.tsx` e `WpStatus.tsx` como referência).
+5. Rode `npm run test` — há um teste de contrato (`src/dojo/contract.test.ts`) que valida
+   automaticamente que o dojo novo está bem-formado (trilhas cobertas, dicionário não vazio,
+   `runCommand`/`createInitialState` não lançam exceção) — e `npx tsc --noEmit`.
+
+### Como a sua PR vira produção
+
+1. Abra a PR — o checklist em `.github/PULL_REQUEST_TEMPLATE.md` aparece automaticamente.
+2. Um mantenedor revisa e aprova. **Toda PR passa por aprovação antes do merge**, não tem
+   deploy automático a partir de um fork/branch não mergeada.
+3. Depois do merge na `main`, o build e o deploy pro Cloudflare Pages acontecem sozinhos via
+   GitHub Actions (`.github/workflows/deploy.yml`) — ver `docs/DEPLOY.md`. Você não precisa
+   rodar nenhum comando de deploy.
+4. **Exceção — dojo novo com subdomínio próprio** (ex: `docker.odojo.com.br`): criar esse
+   domínio no Cloudflare Pages e o DNS correspondente é manual, feito por um mantenedor que
+   tem o token de API (`docs/DEPLOY.md`, seção "Setup feito"). Isso não é automatizável a
+   partir da PR — o wrangler ainda não tem um subcomando de CLI pra registrar custom domains.
+   Até isso ser feito, o dojo já existe no código (visível em dev/preview) mas só fica
+   acessível no subdomínio depois desse passo manual.
+
 ### Adicionar um novo comando git suportado
 
 1. Implemente o handler em `src/engine/commands.ts` (siga o padrão dos `handleX` existentes) e registre no `switch` de `runCommand`.
