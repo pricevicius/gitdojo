@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import type { RepoState } from "./engine/types";
-import { runCommand } from "./engine/commands";
-import { CHALLENGES, TRILHAS_ORDER } from "./data/challenges";
+import { gitDojo } from "./dojo/git";
 import Terminal from "./components/Terminal";
-import Graph from "./components/Graph";
 import Dictionary from "./components/Dictionary";
 import ChallengePanel from "./components/ChallengePanel";
 import ChallengeNav from "./components/ChallengeNav";
 import "./App.css";
+
+// Único dojo plugado por enquanto — trocar por um seletor quando um segundo
+// dojo (ex. wp-cli) existir.
+const dojo = gitDojo;
+const CHALLENGES = dojo.challenges;
+const TRILHAS_ORDER = dojo.trilhasOrder;
 
 interface LogLine {
   kind: "input" | "output" | "error";
@@ -121,7 +125,7 @@ export default function App() {
   }
 
   function handleRun(command: string) {
-    const result = runCommand(command, repoState);
+    const result = dojo.runCommand(command, repoState);
     setRepoState(result.state);
     if (result.unlockedCommand) {
       setUnlocked((prev) => {
@@ -185,7 +189,7 @@ export default function App() {
 
       <main className="app-main">
         <section className="app-workspace">
-          <Graph state={repoState} />
+          <dojo.Visualization state={repoState} />
           <Terminal
             challenge={challenge}
             solved={solved}
