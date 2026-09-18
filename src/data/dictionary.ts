@@ -187,6 +187,72 @@ export const DICTIONARY: Record<string, DictionaryEntry> = {
     short: "Lista os submódulos do projeto e o commit em que cada um está.",
     example: "git submodule status",
   },
+  "git stash": {
+    command: "git stash",
+    category: "Stash",
+    short: "Guarda as alterações preparadas e não preparadas numa pilha e limpa a área de trabalho.",
+    example: "git stash",
+  },
+  "git stash pop": {
+    command: "git stash pop",
+    category: "Stash",
+    short: "Traz de volta o topo da pilha de stash e o remove de lá.",
+    example: "git stash pop",
+  },
+  "git stash list": {
+    command: "git stash list",
+    category: "Stash",
+    short: "Lista o que está guardado na pilha de stash, sem tirar nada de lá.",
+    example: "git stash list",
+  },
+  "git diff": {
+    command: "git diff",
+    category: "Inspeção",
+    short: "Mostra a diferença entre a área de trabalho e o último commit (alterações ainda não preparadas).",
+    example: "git diff",
+  },
+  "git diff --staged": {
+    command: "git diff --staged",
+    category: "Inspeção",
+    short: "Mostra a diferença entre a staging area e o último commit — o que vai entrar no próximo commit.",
+    example: "git diff --staged",
+  },
+  "git show": {
+    command: "git show <commit>",
+    category: "Inspeção",
+    short: "Mostra os detalhes de um único commit específico.",
+    example: "git show c2",
+  },
+  "git rm": {
+    command: "git rm <arquivo>",
+    category: "Arquivos",
+    short: "Remove um arquivo já rastreado da área de trabalho e do índice, preparando a remoção pro próximo commit.",
+    example: "git rm index.js",
+  },
+  "git mv": {
+    command: "git mv <origem> <destino>",
+    category: "Arquivos",
+    short: "Renomeia (ou move) um arquivo já rastreado, já deixando a mudança preparada.",
+    example: "git mv index.js main.js",
+  },
+  "git cherry-pick": {
+    command: "git cherry-pick <commit>",
+    category: "Avançado",
+    short: "Copia um commit específico de outra branch para a branch atual, criando um commit novo com o mesmo conteúdo.",
+    example: "git cherry-pick c2",
+  },
+  "git blame": {
+    command: "git blame <arquivo>",
+    category: "Avançado",
+    short: "Anota cada linha de um arquivo com o commit que a alterou por último.",
+    example: "git blame index.js",
+  },
+  "git clean -fd": {
+    command: "git clean -fd",
+    category: "Avançado",
+    short: "Remove arquivos nunca rastreados (não commitados nem adicionados). Exige -f por segurança.",
+    example: "git clean -fd",
+  },
 };
 
 export const CATEGORIES = [
@@ -196,4 +262,8 @@ export const CATEGORIES = [
   "Desfazer",
   "Remoto",
   "Submódulos",
+  "Stash",
+  "Inspeção",
+  "Arquivos",
+  "Avançado",
 ] as const;

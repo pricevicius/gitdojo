@@ -54,6 +54,19 @@ export interface RepoState {
    * um `update` só olhando o estado.
    */
   lastSubmoduleAction: string | null;
+  /** Pilha de stashes, mais recente primeiro (índice 0 = stash@{0}). */
+  stash: { message: string; staged: string[]; workingChanges: string[] }[];
+  /** Arquivos que já existem no repositório (comitados em algum momento). */
+  trackedFiles: string[];
+  /** Arquivos novos, nunca adicionados — o que 'git clean' remove. */
+  untrackedFiles: string[];
+  /**
+   * Detalhe do último comando que não muda estado (diff/show/stash list) e
+   * por isso não dá pra inferir de volta olhando só os outros campos —
+   * mesmo motivo do `lastSubmoduleAction`, mas genérico pros comandos
+   * adicionados depois dele em vez de um campo dedicado por comando.
+   */
+  lastCommandDetail: string | null;
 }
 
 export interface CommandResult {
@@ -80,5 +93,9 @@ export function createInitialState(): RepoState {
     upstream: {},
     submodules: {},
     lastSubmoduleAction: null,
+    stash: [],
+    trackedFiles: [],
+    untrackedFiles: [],
+    lastCommandDetail: null,
   };
 }

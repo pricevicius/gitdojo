@@ -88,6 +88,22 @@ export function runCommand(rawInput: string, prev: RepoState): CommandResult {
         return handleClone(tokens, state);
       case "submodule":
         return handleSubmodule(tokens, state);
+      case "stash":
+        return handleStash(tokens, state);
+      case "diff":
+        return handleDiff(tokens, state);
+      case "show":
+        return handleShow(tokens, state);
+      case "rm":
+        return handleRm(tokens, state);
+      case "mv":
+        return handleMv(tokens, state);
+      case "cherry-pick":
+        return handleCherryPick(tokens, state);
+      case "blame":
+        return handleBlame(tokens, state);
+      case "clean":
+        return handleClean(tokens, state);
       default:
         return fail(state, `git: '${sub}' não é um comando suportado neste simulador ainda.`);
     }
@@ -822,4 +838,157 @@ function handleSubmodule(tokens: string[], state: RepoState): CommandResult {
   }
 
   return fail(state, `git submodule: subcomando '${action}' não suportado`);
+}
+
+function handleStash(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const action = tokens[2];
+
+  if (action === "pop") {
+    if (state.stash.length === 0) return fail(state, "No stash entries found.");
+    const [entry, ...rest] = state.stash;
+    state.staged = [...entry.staged, ...state.staged];
+    state.workingChanges = [...entry.workingChanges, ...state.workingChanges];
+    state.stash = rest;
+    state.lastCommandDetail = "pop";
+    return ok(state, ["Dropped stash@{0}"], "git stash pop");
+  }
+
+  if (action === "list") {
+    state.lastCommandDetail = "list";
+    const lines = state.stash.map((s, i) => `stash@{${i}}: ${s.message}`);
+    return ok(state, lines, "git stash list");
+  }
+
+  if (action && action !== "push") {
+    return fail(state, `git stash: subcomando '${action}' não suportado`);
+  }
+
+  if (state.staged.length === 0 && state.workingChanges.length === 0) {
+    return fail(state, "Nenhuma alteração local para guardar");
+  }
+  const branchLabel = state.head.type === "branch" ? state.head.name : "HEAD destacado";
+  const message = extractMessage(tokens, "-m") ?? `WIP on ${branchLabel}`;
+  state.stash.unshift({ message, staged: [...state.staged], workingChanges: [...state.workingChanges] });
+  state.staged = [];
+  state.workingChanges = [];
+  state.lastCommandDetail = "push";
+  return ok(state, [`Guardado estado da árvore de trabalho e do índice em WIP: ${message}`], "git stash");
+}
+
+function handleDiff(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const staged = tokens.includes("--staged") || tokens.includes("--cached");
+  state.lastCommandDetail = staged ? "staged" : "unstaged";
+  const files = staged ? state.staged : state.workingChanges;
+  const lines = files.map((f) => `diff --git a/${f} b/${f}`);
+  return ok(state, lines, staged ? "git diff --staged" : "git diff");
+}
+
+function handleShow(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const id = tokens[2];
+  if (!id) return fail(state, "especifique o commit (ex: git show c1)");
+  const commit = state.commits[id];
+  if (!commit) return fail(state, `fatal: revisão inválida '${id}'`);
+
+  state.lastCommandDetail = id;
+  return ok(state, [`commit ${commit.id}`, `    ${commit.message}`], "git show");
+}
+
+function handleRm(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const file = tokens[2];
+  if (!file) return fail(state, "especifique o arquivo (ex: git rm index.js)");
+  const idx = state.trackedFiles.indexOf(file);
+  if (idx === -1) {
+    return fail(state, `fatal: pathspec '${file}' não corresponde a nenhum arquivo conhecido pelo git`);
+  }
+  state.trackedFiles.splice(idx, 1);
+  if (!state.staged.includes(file)) state.staged.push(file);
+  const wIdx = state.workingChanges.indexOf(file);
+  if (wIdx !== -1) state.workingChanges.splice(wIdx, 1);
+  return ok(state, [`rm '${file}'`], "git rm");
+}
+
+function handleMv(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const src = tokens[2];
+  const dest = tokens[3];
+  if (!src || !dest) return fail(state, "uso: git mv <origem> <destino>");
+  const idx = state.trackedFiles.indexOf(src);
+  if (idx === -1) {
+    return fail(state, `fatal: pathspec '${src}' não corresponde a nenhum arquivo conhecido pelo git`);
+  }
+  state.trackedFiles.splice(idx, 1);
+  state.trackedFiles.push(dest);
+  if (!state.staged.includes(dest)) state.staged.push(dest);
+  return ok(state, [`Renomeando ${src} -> ${dest}`], "git mv");
+}
+
+function handleCherryPick(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  if (state.head.type === "detached") {
+    return fail(state, "não é possível fazer cherry-pick em HEAD destacado neste tutorial (faça checkout de uma branch)");
+  }
+
+  const id = tokens[2];
+  if (!id) return fail(state, "especifique o commit (ex: git cherry-pick c2)");
+  const source = state.commits[id];
+  if (!source) return fail(state, `fatal: revisão inválida '${id}'`);
+
+  const cur = currentCommit(state);
+  state.commitCounter += 1;
+  const newId = `c${state.commitCounter}`;
+  state.commits[newId] = {
+    id: newId,
+    parentIds: cur ? [cur] : [],
+    message: source.message,
+    createdOnBranch: state.head.name,
+  };
+  state.branches[state.head.name] = newId;
+
+  return ok(state, [`[${state.head.name} ${newId}] ${source.message}`], "git cherry-pick");
+}
+
+function handleBlame(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  const file = tokens[2];
+  if (!file) return fail(state, "especifique o arquivo (ex: git blame index.js)");
+  state.lastCommandDetail = file;
+  return ok(state, [`(simulado) histórico de linhas de '${file}'`], "git blame");
+}
+
+function handleClean(tokens: string[], state: RepoState): CommandResult {
+  const notInit = requireInit(state);
+  if (notInit) return notInit;
+
+  // Flags curtas do clean costumam vir combinadas num token só (-fd), não separadas.
+  const force = tokens.includes("--force") || tokens.some((t) => /^-[a-z]*f[a-z]*$/.test(t));
+  if (!force) {
+    return fail(
+      state,
+      "fatal: clean.requireForce é true por padrão e nenhuma -f (ou -i) foi passada; recusando limpar"
+    );
+  }
+  if (state.untrackedFiles.length === 0) {
+    return ok(state, ["Nada para limpar."]);
+  }
+  const removed = state.untrackedFiles;
+  state.untrackedFiles = [];
+  return ok(state, removed.map((f) => `Removendo ${f}`), "git clean -fd");
 }

@@ -11,6 +11,10 @@ const TRILHAS_ORDER = [
   "Desfazer",
   "Remoto",
   "Submódulos",
+  "Stash",
+  "Inspeção",
+  "Arquivos",
+  "Avançado",
 ] as const;
 export { TRILHAS_ORDER };
 
@@ -162,6 +166,42 @@ function withInitializedSubmodule(): RepoState {
 function withUpdatedSubmodule(): RepoState {
   const s = withInitializedSubmodule();
   s.submodules["libs/ui-kit"].commit = "sub1";
+  return s;
+}
+
+/** Um commit gravado, mais uma alteração solta (staged e não staged) pra guardar de lado. */
+function withStashableChanges(): RepoState {
+  const s = withOneCommit();
+  s.staged.push("staged.txt");
+  s.workingChanges.push("index.js");
+  return s;
+}
+
+/** Como acima, mas a alteração já foi guardada com 'git stash'. */
+function withOneStash(): RepoState {
+  const s = withOneCommit();
+  s.stash.push({ message: "WIP on main: c1 primeiro commit", staged: ["staged.txt"], workingChanges: ["index.js"] });
+  return s;
+}
+
+/** Dois commits e ainda uma alteração não commitada — pra comparar com git diff. */
+function withUncommittedChange(): RepoState {
+  const s = withTwoCommits();
+  s.workingChanges.push("index.js");
+  return s;
+}
+
+/** Repositório com 'index.js' já commitado (rastreado), pronto pra rm/mv. */
+function withTrackedFile(fileName = "index.js"): RepoState {
+  const s = withOneCommit();
+  s.trackedFiles.push(fileName);
+  return s;
+}
+
+/** Um arquivo novo, nunca adicionado — o que 'git clean' deve remover. */
+function withUntrackedFile(fileName = "debug.log"): RepoState {
+  const s = withOneCommit();
+  s.untrackedFiles.push(fileName);
   return s;
 }
 
@@ -464,5 +504,114 @@ export const CHALLENGES: Challenge[] = [
     hint: "Mesmo subcomando 'submodule' de novo — a ação que só lista, sem mudar nada, é a mesma palavra que você já usa pra checar o estado geral de um repositório git.",
     setup: () => withUpdatedSubmodule(),
     goal: (s) => s.lastSubmoduleAction === "status",
+  },
+  {
+    id: "stash-1",
+    trilha: "Stash",
+    title: "Guarde alterações de lado",
+    description:
+      "Você tem alterações preparadas e não preparadas, mas precisa trocar de contexto rapidinho sem commitar nada ainda. Guarde tudo de lado.",
+    hint: "Existe um subcomando que tira as alterações (staged e não staged) da área de trabalho e guarda numa pilha, deixando tudo limpo de novo.",
+    setup: () => withStashableChanges(),
+    goal: (s) => s.stash.length === 1 && s.staged.length === 0 && s.workingChanges.length === 0,
+  },
+  {
+    id: "stash-pop-1",
+    trilha: "Stash",
+    title: "Recupere o que estava guardado",
+    description: "Você já voltou pro contexto de antes. Traga de volta o que estava guardado no stash.",
+    hint: "Mesmo subcomando de guardar, ação diferente: ela traz de volta o topo da pilha e já remove de lá.",
+    setup: () => withOneStash(),
+    goal: (s) => s.stash.length === 0 && s.staged.includes("staged.txt") && s.workingChanges.includes("index.js"),
+  },
+  {
+    id: "stash-list-1",
+    trilha: "Stash",
+    title: "Veja o que está guardado",
+    description: "Antes de decidir o que fazer, veja a lista do que está guardado no stash.",
+    hint: "Mesmo subcomando 'stash', ação que só lista — sem tirar nada da pilha.",
+    setup: () => withOneStash(),
+    goal: (s) => s.lastCommand === "stash" && s.lastCommandDetail === "list",
+  },
+  {
+    id: "diff-1",
+    trilha: "Inspeção",
+    title: "Veja o que mudou (ainda não preparado)",
+    description: "'index.js' foi editado mas ainda não foi preparado para commit. Veja exatamente o que mudou.",
+    hint: "Existe um subcomando que mostra a diferença entre a área de trabalho e o último commit, sem argumentos extras.",
+    setup: () => withUncommittedChange(),
+    goal: (s) => s.lastCommand === "diff" && s.lastCommandDetail === "unstaged",
+  },
+  {
+    id: "diff-staged-1",
+    trilha: "Inspeção",
+    title: "Veja o que já está preparado",
+    description: "Desta vez você já preparou a alteração. Veja o que exatamente vai entrar no próximo commit.",
+    hint: "É o mesmo subcomando do desafio anterior, com uma flag que olha pra staging area em vez da área de trabalho.",
+    setup: () => {
+      const s = withTwoCommits();
+      s.staged.push("index.js");
+      return s;
+    },
+    goal: (s) => s.lastCommand === "diff" && s.lastCommandDetail === "staged",
+  },
+  {
+    id: "show-1",
+    trilha: "Inspeção",
+    title: "Veja os detalhes de um commit específico",
+    description: "Você quer ver os detalhes só do commit 'c2', sem listar o histórico inteiro.",
+    hint: "Existe um subcomando que mostra os detalhes de um único commit, seguido do id dele.",
+    setup: () => withTwoCommits(),
+    goal: (s) => s.lastCommand === "show" && s.lastCommandDetail === "c2",
+  },
+  {
+    id: "rm-1",
+    trilha: "Arquivos",
+    title: "Remova um arquivo rastreado",
+    description: "'index.js' já foi commitado antes, mas não é mais necessário. Remova-o do repositório.",
+    hint: "Existe um subcomando que remove um arquivo já rastreado tanto da área de trabalho quanto do índice, já preparando a remoção pro próximo commit.",
+    setup: () => withTrackedFile("index.js"),
+    goal: (s) => !s.trackedFiles.includes("index.js") && s.staged.includes("index.js"),
+  },
+  {
+    id: "mv-1",
+    trilha: "Arquivos",
+    title: "Renomeie um arquivo rastreado",
+    description: "'index.js' precisa passar a se chamar 'main.js'. Renomeie-o.",
+    hint: "Existe um subcomando que renomeia (ou move) um arquivo já rastreado, já deixando a mudança preparada — evita um 'rm' seguido de um 'add' manual.",
+    setup: () => withTrackedFile("index.js"),
+    goal: (s) => s.trackedFiles.includes("main.js") && !s.trackedFiles.includes("index.js"),
+  },
+  {
+    id: "cherry-pick-1",
+    trilha: "Avançado",
+    title: "Traga um commit específico de outra branch",
+    description:
+      "'feature-login' tem um commit útil que você quer só ele em 'main', sem trazer o resto da branch. Você está em 'main': traga só esse commit.",
+    hint: "Existe um subcomando que copia um commit específico de outro lugar para a branch atual, criando um commit novo com o mesmo conteúdo. Seguido do id do commit.",
+    setup: () => withBranchAhead(),
+    goal: (s) => {
+      const tip = s.branches["main"];
+      const c = tip ? s.commits[tip] : null;
+      return !!c && c.message === "tela de login" && c.parentIds[0] === "c1";
+    },
+  },
+  {
+    id: "blame-1",
+    trilha: "Avançado",
+    title: "Descubra quem mudou cada linha",
+    description: "Você quer entender o histórico de mudanças linha a linha de 'index.js'.",
+    hint: "Existe um subcomando que anota cada linha de um arquivo com o commit (e implicitamente o autor) que a alterou por último.",
+    setup: () => withOneCommit(),
+    goal: (s) => s.lastCommand === "blame" && s.lastCommandDetail === "index.js",
+  },
+  {
+    id: "clean-1",
+    trilha: "Avançado",
+    title: "Remova arquivos não rastreados",
+    description: "'debug.log' nunca foi adicionado ao git e não é mais necessário. Limpe os arquivos não rastreados.",
+    hint: "Existe um subcomando que remove arquivos nunca rastreados. Por segurança, ele exige uma flag explícita de 'força' pra rodar de verdade.",
+    setup: () => withUntrackedFile("debug.log"),
+    goal: (s) => s.untrackedFiles.length === 0,
   },
 ];
