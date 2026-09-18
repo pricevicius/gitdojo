@@ -78,7 +78,7 @@ export function runCommand(rawInput: string, prev: WpState): WpCommandResult {
       case "config":
         return handleConfig(action, tokens, state);
       case "db":
-        return handleDb(action, state);
+        return handleDb(action, tokens, state);
       case "plugin":
         return handleAsset("plugin", action, tokens, state);
       case "theme":
@@ -87,6 +87,12 @@ export function runCommand(rawInput: string, prev: WpState): WpCommandResult {
         return handleUser(action, tokens, state);
       case "language":
         return handleLanguage(tokens, state);
+      case "search-replace":
+        return handleSearchReplace(tokens, state);
+      case "cache":
+        return handleCache(action, state);
+      case "rewrite":
+        return handleRewrite(action, state);
       default:
         return fail(state, `wp: '${sub}' não é um comando suportado neste simulador ainda.`);
     }
@@ -250,16 +256,77 @@ function handleConfig(action: string | undefined, tokens: string[], state: WpSta
   return ok(state, ["Sucesso: wp-config.php criado."], "wp config create");
 }
 
-function handleDb(action: string | undefined, state: WpState): WpCommandResult {
-  if (action !== "create") {
-    return fail(state, `wp db: subcomando '${action}' não suportado`);
+function handleDb(action: string | undefined, tokens: string[], state: WpState): WpCommandResult {
+  if (action === "create") {
+    if (!state.config) {
+      return fail(state, "Erro: ainda não existe wp-config.php (rode 'wp config create' primeiro).");
+    }
+    if (state.dbCreated) {
+      return ok(state, ["O banco de dados já existe."]);
+    }
+    state.dbCreated = true;
+    return ok(state, [`Sucesso: banco de dados '${state.config.dbName}' criado.`], "wp db create");
   }
-  if (!state.config) {
-    return fail(state, "Erro: ainda não existe wp-config.php (rode 'wp config create' primeiro).");
+
+  if (action === "export") {
+    if (!state.dbCreated) {
+      return fail(state, "Erro: o banco de dados ainda não existe (rode 'wp db create' primeiro).");
+    }
+    const file = tokens[3];
+    if (!file) return fail(state, "uso: wp db export <arquivo>");
+    state.dbBackupFile = file;
+    return ok(state, ["Exportando banco de dados...", `Sucesso: exportado para '${file}'.`], "wp db export");
   }
-  if (state.dbCreated) {
-    return ok(state, ["O banco de dados já existe."]);
+
+  if (action === "import") {
+    if (!state.dbCreated) {
+      return fail(state, "Erro: o banco de dados ainda não existe (rode 'wp db create' primeiro).");
+    }
+    const file = tokens[3];
+    if (!file) return fail(state, "uso: wp db import <arquivo>");
+    if (state.dbBackupFile !== file) {
+      return fail(state, `Erro: arquivo '${file}' não encontrado (confira o nome ou rode 'wp db export ${file}' antes).`);
+    }
+    state.dbRestoredFrom = file;
+    return ok(state, ["Importando banco de dados...", `Sucesso: importado de '${file}'.`], "wp db import");
   }
-  state.dbCreated = true;
-  return ok(state, [`Sucesso: banco de dados '${state.config.dbName}' criado.`], "wp db create");
+
+  return fail(state, `wp db: subcomando '${action}' não suportado`);
+}
+
+function handleSearchReplace(tokens: string[], state: WpState): WpCommandResult {
+  const notInstalled = requireInstalled(state);
+  if (notInstalled) return notInstalled;
+
+  const search = tokens[2];
+  const replace = tokens[3];
+  if (!search || !replace) return fail(state, "uso: wp search-replace <busca> <troca>");
+  if (!state.site || state.site.url !== search) {
+    return fail(state, `Erro: '${search}' não foi encontrado no banco.`);
+  }
+
+  state.site = { ...state.site, url: replace };
+  return ok(
+    state,
+    ["Buscando e substituindo no banco...", `Sucesso: '${search}' substituído por '${replace}'.`],
+    "wp search-replace"
+  );
+}
+
+function handleCache(action: string | undefined, state: WpState): WpCommandResult {
+  const notInstalled = requireInstalled(state);
+  if (notInstalled) return notInstalled;
+  if (action !== "flush") return fail(state, `wp cache: subcomando '${action}' não suportado`);
+  if (!state.cacheDirty) return ok(state, ["O cache já está limpo."]);
+  state.cacheDirty = false;
+  return ok(state, ["Sucesso: cache limpo."], "wp cache flush");
+}
+
+function handleRewrite(action: string | undefined, state: WpState): WpCommandResult {
+  const notInstalled = requireInstalled(state);
+  if (notInstalled) return notInstalled;
+  if (action !== "flush") return fail(state, `wp rewrite: subcomando '${action}' não suportado`);
+  if (!state.permalinksDirty) return ok(state, ["Os links permanentes já estão atualizados."]);
+  state.permalinksDirty = false;
+  return ok(state, ["Sucesso: links permanentes atualizados."], "wp rewrite flush");
 }

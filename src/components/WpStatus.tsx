@@ -30,9 +30,17 @@ export default function WpStatus({ state }: Props) {
           <p>
             <strong>{state.site.title}</strong>
             {state.coreUpdateAvailable && <span className="wp-status-badge">atualização disponível</span>}
+            {state.cacheDirty && <span className="wp-status-badge outdated">cache desatualizado</span>}
+            {state.permalinksDirty && <span className="wp-status-badge outdated">permalinks desatualizados</span>}
           </p>
           <p className="hint">{state.site.url}</p>
           <p className="hint">admin: {state.site.adminUser}</p>
+          {state.dbBackupFile && (
+            <p className="hint">
+              backup: {state.dbBackupFile}
+              {state.dbRestoredFrom === state.dbBackupFile ? " (restaurado)" : ""}
+            </p>
+          )}
 
           <WpAssetList title="Plugins" assets={state.plugins} />
           <WpAssetList title="Temas" assets={state.themes} />
