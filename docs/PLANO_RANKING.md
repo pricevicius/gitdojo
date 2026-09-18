@@ -121,17 +121,23 @@ backend + bancos entram no Compose por enquanto.
 ### 3. Frontend consome a API (`src/`)
 
 - `src/api/client.ts` (novo) — `fetch` fino com a base URL de `VITE_API_URL`, funções
-  `register`, `login`, `logout`, `completeChallenge`, `getLeaderboard`, `getMyStats`.
+  `register`, `login`, `logout`, `completeChallenge(domain, challengeId, commandCount)`,
+  `getLeaderboard(domain, limit?)`, `getMyStats(domain)`. `domain` é um parâmetro
+  explícito em toda função que fala com uma rota escopada por domínio — não um valor
+  assumido implicitamente — mesmo hoje só existindo o valor `"git"`, para que um segundo
+  dojo não exija reabrir esse arquivo, só passar outro slug.
 - `src/App.tsx` — ao resolver um desafio (mesmo ponto que já dispara `markSolved` hoje),
-  chama `completeChallenge(challenge.id, commandCount)` se o usuário estiver logado;
-  contagem de tentativas (`commandCount`, resetado em `resetChallenge`) segue igual ao
-  que já estava desenhado antes da virada pra backend. `unlocked`/`solvedIds` locais
-  continuam existindo do jeito que estão — eles dirigem o dicionário e os pills do
+  chama `completeChallenge("git", challenge.id, commandCount)` se o usuário estiver
+  logado; contagem de tentativas (`commandCount`, resetado em `resetChallenge`) segue
+  igual ao que já estava desenhado antes da virada pra backend. `unlocked`/`solvedIds`
+  locais continuam existindo do jeito que estão — eles dirigem o dicionário e os pills do
   `ChallengeNav` e não devem depender de rede.
-- Novo componente `RankingPanel` — vira a segunda aba da sidebar (ao lado do
-  `Dictionary`, que já virou acordeão por categoria nesta sessão), mostrando o
-  leaderboard global e o "seu progresso" pessoal. Sem login, mostra um CTA simples pra
-  entrar — o simulador continua 100% praticável sem conta, só o ranking exige login.
+- Novo componente `RankingPanel` — recebe `domain` como prop (fixo em `"git"` por
+  enquanto, passado por `App.tsx`, não hardcoded dentro do componente). Vira a segunda
+  aba da sidebar (ao lado do `Dictionary`, que já virou acordeão por categoria nesta
+  sessão), mostrando o leaderboard daquele domínio e o "seu progresso" pessoal. Sem
+  login, mostra um CTA simples pra entrar — o simulador continua 100% praticável sem
+  conta, só o ranking exige login.
 - Um modal simples de login/cadastro, reaproveitando a estética já usada no modal
   Spotlight (`.spotlight-modal` em `src/App.css`) em vez de inventar um estilo novo.
 
