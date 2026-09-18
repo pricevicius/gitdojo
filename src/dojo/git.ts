@@ -8,6 +8,7 @@ import Graph from "../components/Graph";
 
 export const gitDojo: Dojo<RepoState> = {
   domainSlug: "git",
+  subdomain: "git",
   label: "Git",
   commandPrefix: "git",
   trilhasOrder: TRILHAS_ORDER,
