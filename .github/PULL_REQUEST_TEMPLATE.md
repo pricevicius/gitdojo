@@ -2,6 +2,11 @@
 
 
 
+## Se for um dojo novo (ver docs/DEPLOY.md)
+
+- **Domínio desejado**: <!-- ex: docker -> docker.odojo.com.br -->
+- **Perfil do LinkedIn (opcional)**: <!-- se quiser crédito público pela contribuição -->
+
 ## Checklist
 
 - [ ] Se é um dojo novo: rodei `npm run create-dojo` e completei os TODOs gerados (comandos, desafios cobrindo toda trilha, dicionário, visualização)

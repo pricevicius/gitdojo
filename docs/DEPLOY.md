@@ -32,6 +32,21 @@ Fluxo esperado pra quem for adicionar um dojo novo (ex: MySQL): abrir PR impleme
 `Dojo` (contrato em `docs/PLANO_MULTI_DOJO.md`), revisar, merge na `main` — o deploy sobe
 sozinho, sem ninguém rodar comando manual.
 
+## O que a PR de um dojo novo precisa trazer
+
+Como registrar o subdomínio é manual (ver "Setup feito" abaixo), a descrição da PR precisa
+dar ao mantenedor o que falta pra fazer isso sem ida e volta. O template
+(`.github/PULL_REQUEST_TEMPLATE.md`) já pede isso, mas resumindo o porquê de cada campo:
+
+- **O que foi feito**: resumo do dojo (ferramenta, trilhas/desafios cobertos) — contexto
+  rápido pra quem for revisar sem precisar ler todo o diff primeiro.
+- **Domínio desejado**: o subdomínio que a pessoa quer pro dojo dela (ex: `docker` →
+  `docker.odojo.com.br`). Sem isso o mantenedor não sabe qual custom domain criar no
+  Cloudflare Pages depois do merge.
+- **Perfil do LinkedIn (opcional)**: se a pessoa quiser crédito público pela contribuição
+  (ex: menção na landing page ou em redes do projeto). Fica de fora se ela preferir não
+  informar — não é requisito pra aprovar a PR.
+
 ## Setup feito (histórico, não precisa repetir)
 
 1. Criado projeto Pages via `wrangler pages project create gitdojo --production-branch
