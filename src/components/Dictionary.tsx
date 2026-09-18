@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { DICTIONARY, CATEGORIES } from "../data/dictionary";
+import type { DictionaryEntry } from "../dojo/types";
 
 interface Props {
+  dictionary: Record<string, DictionaryEntry>;
+  categories: readonly string[];
   unlocked: Set<string>;
   currentTrilha: string;
 }
 
-export default function Dictionary({ unlocked, currentTrilha }: Props) {
+export default function Dictionary({ dictionary, categories, unlocked, currentTrilha }: Props) {
   // Categorias abertas por padrão são só a da trilha atual; um clique
   // "alterna" (toggled) essa categoria em relação ao padrão dela.
   const [toggled, setToggled] = useState<Set<string>>(new Set());
@@ -29,10 +31,10 @@ export default function Dictionary({ unlocked, currentTrilha }: Props) {
     <div className="dictionary">
       <h2>📖 Seu dicionário</h2>
       <p className="dictionary-sub">
-        {unlocked.size} de {Object.keys(DICTIONARY).length} comandos aprendidos
+        {unlocked.size} de {Object.keys(dictionary).length} comandos aprendidos
       </p>
-      {CATEGORIES.map((cat) => {
-        const entries = Object.entries(DICTIONARY).filter(([, e]) => e.category === cat);
+      {categories.map((cat) => {
+        const entries = Object.entries(dictionary).filter(([, e]) => e.category === cat);
         const unlockedCount = entries.filter(([key]) => unlocked.has(key)).length;
         const isOpen = isCategoryOpen(cat);
         return (

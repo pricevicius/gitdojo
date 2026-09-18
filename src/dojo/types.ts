@@ -15,12 +15,20 @@ export interface DojoCommandResult<TState> {
   unlockedCommand?: string;
 }
 
-export interface DojoChallenge<TState> {
+/**
+ * Campos de um desafio que não dependem do TState de um dojo específico —
+ * é o que a casca de UI (ChallengeNav, ChallengePanel, Terminal) consome,
+ * então essas telas funcionam com o desafio de qualquer dojo sem genéricos.
+ */
+export interface ChallengeMeta {
   id: string;
   trilha: string;
   title: string;
   description: string;
   hint: string;
+}
+
+export interface DojoChallenge<TState> extends ChallengeMeta {
   setup: () => TState;
   goal: (state: TState) => boolean;
 }
@@ -32,13 +40,25 @@ export interface DictionaryEntry {
   example: string;
 }
 
+export interface DojoPreface {
+  title: string;
+  intro?: string[];
+  /** Comandos reais de instalação/preparo — não é um desafio, não é avaliado. */
+  steps: string[];
+}
+
 export interface Dojo<TState> {
   /** Bate com Domain.slug no backend de ranking (ver docs/PLANO_RANKING.md). */
   domainSlug: string;
+  label: string;
+  /** Nome do binário digitado no terminal (ex. "git", "wp") — só para placeholder/UI. */
+  commandPrefix: string;
   trilhasOrder: readonly string[];
   runCommand: (input: string, prev: TState) => DojoCommandResult<TState>;
   createInitialState: () => TState;
   challenges: DojoChallenge<TState>[];
   dictionary: Record<string, DictionaryEntry>;
   Visualization: ComponentType<{ state: TState }>;
+  /** Passo a passo real de instalação da ferramenta, mostrado antes do primeiro desafio. */
+  preface?: DojoPreface;
 }

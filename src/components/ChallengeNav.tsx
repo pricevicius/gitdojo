@@ -1,7 +1,7 @@
-import type { Challenge } from "../data/challenges";
+import type { ChallengeMeta } from "../dojo/types";
 
 interface Props {
-  challenges: Challenge[];
+  challenges: ChallengeMeta[];
   trilhasOrder: readonly string[];
   currentId: string;
   solvedIds: Set<string>;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { Challenge } from "../data/challenges";
+import type { ChallengeMeta } from "../dojo/types";
 
 interface LogLine {
   kind: "input" | "output" | "error";
@@ -7,7 +7,8 @@ interface LogLine {
 }
 
 interface Props {
-  challenge: Challenge;
+  challenge: ChallengeMeta;
+  commandPrefix: string;
   solved: boolean;
   onRun: (command: string) => { ok: boolean; output: string[] };
   onNext: () => void;
@@ -19,6 +20,7 @@ interface Props {
 
 export default function Terminal({
   challenge,
+  commandPrefix,
   solved,
   onRun,
   onNext,
@@ -112,7 +114,7 @@ export default function Terminal({
         onClick={() => setIsOpen(true)}
       >
         <span className="prompt">$</span>
-        <span className="terminal-trigger-placeholder">digite um comando git...</span>
+        <span className="terminal-trigger-placeholder">digite um comando {commandPrefix}...</span>
         <kbd>/</kbd>
       </button>
 
@@ -143,7 +145,7 @@ export default function Terminal({
                     setHistoryIndex(null);
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="digite um comando git..."
+                  placeholder={`digite um comando ${commandPrefix}...`}
                   spellCheck={false}
                   autoComplete="off"
                 />
