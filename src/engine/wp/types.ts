@@ -33,6 +33,10 @@ export interface WpState {
   users: Record<string, WpUser>;
   coreUpdateAvailable: boolean;
   coreLanguageUpdateAvailable: boolean;
+  dbBackupFile: string | null;
+  dbRestoredFrom: string | null;
+  cacheDirty: boolean;
+  permalinksDirty: boolean;
   lastCommand: string | null;
 }
 
@@ -55,6 +59,10 @@ export function createInitialWpState(): WpState {
     users: {},
     coreUpdateAvailable: false,
     coreLanguageUpdateAvailable: false,
+    dbBackupFile: null,
+    dbRestoredFrom: null,
+    cacheDirty: false,
+    permalinksDirty: false,
     lastCommand: null,
   };
 }

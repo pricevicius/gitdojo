@@ -206,3 +206,91 @@ describe("wp user create", () => {
     expect(runCommand("wp user create maria outro@x.local", s).ok).toBe(false);
   });
 });
+
+describe("wp db export/import", () => {
+  it("export falha sem o banco criado", () => {
+    expect(runCommand("wp db export backup.sql", configure()).ok).toBe(false);
+  });
+
+  it("export sem nome de arquivo falha", () => {
+    expect(runCommand("wp db export", createDb()).ok).toBe(false);
+  });
+
+  it("export grava o nome do arquivo", () => {
+    const result = runCommand("wp db export backup.sql", createDb());
+    expect(result.ok).toBe(true);
+    expect(result.state.dbBackupFile).toBe("backup.sql");
+    expect(result.unlockedCommand).toBe("wp db export");
+  });
+
+  it("import falha se o arquivo não bate com o que foi exportado", () => {
+    expect(runCommand("wp db import outro.sql", createDb()).ok).toBe(false);
+  });
+
+  it("import restaura a partir de um backup existente", () => {
+    const exported = runCommand("wp db export backup.sql", createDb()).state;
+    const result = runCommand("wp db import backup.sql", exported);
+    expect(result.ok).toBe(true);
+    expect(result.state.dbRestoredFrom).toBe("backup.sql");
+    expect(result.unlockedCommand).toBe("wp db import");
+  });
+});
+
+describe("wp search-replace", () => {
+  it("falha sem o site instalado", () => {
+    expect(
+      runCommand("wp search-replace https://meusite.local https://meusite.com.br", createDb()).ok
+    ).toBe(false);
+  });
+
+  it("falha se o texto de busca não bate com a url atual", () => {
+    expect(
+      runCommand("wp search-replace https://outro.local https://meusite.com.br", installed()).ok
+    ).toBe(false);
+  });
+
+  it("troca a url do site", () => {
+    const s = { ...installed() };
+    s.site = { ...s.site!, url: "https://meusite.local" };
+    const result = runCommand(
+      "wp search-replace https://meusite.local https://meusite.com.br",
+      s
+    );
+    expect(result.ok).toBe(true);
+    expect(result.state.site?.url).toBe("https://meusite.com.br");
+    expect(result.unlockedCommand).toBe("wp search-replace");
+  });
+});
+
+describe("wp cache flush", () => {
+  it("falha sem o site instalado", () => {
+    expect(runCommand("wp cache flush", createDb()).ok).toBe(false);
+  });
+
+  it("limpa o cache sujo", () => {
+    const s = { ...installed(), cacheDirty: true };
+    const result = runCommand("wp cache flush", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.cacheDirty).toBe(false);
+    expect(result.unlockedCommand).toBe("wp cache flush");
+  });
+
+  it("limpar de novo não quebra nada", () => {
+    const result = runCommand("wp cache flush", installed());
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("wp rewrite flush", () => {
+  it("falha sem o site instalado", () => {
+    expect(runCommand("wp rewrite flush", createDb()).ok).toBe(false);
+  });
+
+  it("regenera as regras de permalink", () => {
+    const s = { ...installed(), permalinksDirty: true };
+    const result = runCommand("wp rewrite flush", s);
+    expect(result.ok).toBe(true);
+    expect(result.state.permalinksDirty).toBe(false);
+    expect(result.unlockedCommand).toBe("wp rewrite flush");
+  });
+});

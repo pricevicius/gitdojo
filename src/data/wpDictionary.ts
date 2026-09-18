@@ -63,4 +63,35 @@ export const WP_DICTIONARY: Record<string, DictionaryEntry> = {
     short: "Cria um usuário novo no site, com o papel (permissões) indicado.",
     example: "wp user create maria maria@meusite.local --role=editor",
   },
+  "wp db export": {
+    command: "wp db export <arquivo>",
+    category: "Migração e Manutenção",
+    short: "Exporta o banco de dados atual para um arquivo .sql — o backup antes de qualquer mudança arriscada.",
+    example: "wp db export backup.sql",
+  },
+  "wp db import": {
+    command: "wp db import <arquivo>",
+    category: "Migração e Manutenção",
+    short: "Importa um dump .sql, substituindo o conteúdo atual do banco.",
+    example: "wp db import backup.sql",
+  },
+  "wp search-replace": {
+    command: "wp search-replace <busca> <troca>",
+    category: "Migração e Manutenção",
+    short:
+      "Busca e substitui um texto em todo o banco, respeitando dados serializados do PHP — o jeito seguro de trocar URLs numa migração entre ambientes.",
+    example: "wp search-replace https://meusite.local https://meusite.com.br",
+  },
+  "wp cache flush": {
+    command: "wp cache flush",
+    category: "Migração e Manutenção",
+    short: "Limpa o cache de objetos do WordPress.",
+    example: "wp cache flush",
+  },
+  "wp rewrite flush": {
+    command: "wp rewrite flush",
+    category: "Migração e Manutenção",
+    short: "Regenera as regras de rewrite (permalinks) do site.",
+    example: "wp rewrite flush",
+  },
 };
