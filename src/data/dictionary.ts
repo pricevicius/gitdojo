@@ -163,6 +163,37 @@ export const DICTIONARY: Record<string, DictionaryEntry> = {
     short: "Cria uma cópia local completa de um repositório remoto, já com a branch principal e o rastreamento configurados.",
     example: "git clone https://github.com/usuario/repo.git",
   },
+  "git submodule add": {
+    command: "git submodule add <url> <path>",
+    category: "Submódulos",
+    short: "Registra um repositório externo como submódulo, clonando-o dentro do caminho indicado.",
+    example: "git submodule add https://github.com/exemplo/ui-kit.git libs/ui-kit",
+  },
+  "git submodule init": {
+    command: "git submodule init [path]",
+    category: "Submódulos",
+    short: "Prepara um submódulo já declarado no '.gitmodules' (por exemplo, depois de um clone) — só registra, ainda não baixa o conteúdo.",
+    example: "git submodule init",
+  },
+  "git submodule update": {
+    command: "git submodule update",
+    category: "Submódulos",
+    short: "Baixa (ou atualiza) o conteúdo de cada submódulo já inicializado, no commit que o projeto principal espera.",
+    example: "git submodule update",
+  },
+  "git submodule status": {
+    command: "git submodule status",
+    category: "Submódulos",
+    short: "Lista os submódulos do projeto e o commit em que cada um está.",
+    example: "git submodule status",
+  },
 };
 
-export const CATEGORIES = ["Fundamentos", "Branching", "Tags", "Desfazer", "Remoto"] as const;
+export const CATEGORIES = [
+  "Fundamentos",
+  "Branching",
+  "Tags",
+  "Desfazer",
+  "Remoto",
+  "Submódulos",
+] as const;

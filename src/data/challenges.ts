@@ -4,7 +4,14 @@ import type { DojoChallenge } from "../dojo/types";
 
 export type Challenge = DojoChallenge<RepoState>;
 
-const TRILHAS_ORDER = ["Fundamentos", "Branching", "Tags", "Desfazer", "Remoto"] as const;
+const TRILHAS_ORDER = [
+  "Fundamentos",
+  "Branching",
+  "Tags",
+  "Desfazer",
+  "Remoto",
+  "Submódulos",
+] as const;
 export { TRILHAS_ORDER };
 
 function baseInitialized(): RepoState {
@@ -130,6 +137,31 @@ function remoteOnlyRepo(): RepoState {
     createdOnBranch: "main",
   };
   s.remoteBranches["origin/main"] = "c1";
+  return s;
+}
+
+/** .gitmodules já conhece 'libs/ui-kit', mas ninguém rodou init/update ainda (como logo após um clone). */
+function withUninitializedSubmodule(): RepoState {
+  const s = withOneCommit();
+  s.submodules["libs/ui-kit"] = {
+    url: "https://github.com/exemplo/ui-kit.git",
+    commit: null,
+    initialized: false,
+  };
+  return s;
+}
+
+/** Como acima, mas já inicializado — só falta trazer o conteúdo de verdade. */
+function withInitializedSubmodule(): RepoState {
+  const s = withUninitializedSubmodule();
+  s.submodules["libs/ui-kit"].initialized = true;
+  return s;
+}
+
+/** Submódulo já totalmente atualizado, pronto para consultar o status. */
+function withUpdatedSubmodule(): RepoState {
+  const s = withInitializedSubmodule();
+  s.submodules["libs/ui-kit"].commit = "sub1";
   return s;
 }
 
@@ -393,5 +425,44 @@ export const CHALLENGES: Challenge[] = [
     hint: "Existe um comando que faz fetch e merge em um único passo. Qual?",
     setup: () => withRemoteAhead(),
     goal: (s) => s.branches["main"] === "c2",
+  },
+  {
+    id: "submodule-add-1",
+    trilha: "Submódulos",
+    title: "Adicione um submódulo",
+    description:
+      "Seu projeto depende de uma biblioteca que vive em outro repositório: 'https://github.com/exemplo/ui-kit.git'. Adicione-a como submódulo no caminho 'libs/ui-kit'.",
+    hint: "Existe um subcomando 'submodule', com uma ação que registra e já clona um repositório externo dentro do seu, num caminho escolhido. Qual ação, seguida da url e do caminho?",
+    setup: () => withOneCommit(),
+    goal: (s) => "libs/ui-kit" in s.submodules,
+  },
+  {
+    id: "submodule-init-1",
+    trilha: "Submódulos",
+    title: "Inicialize um submódulo depois de clonar",
+    description:
+      "Você acabou de clonar um projeto que já declara o submódulo 'libs/ui-kit', mas a pasta dele está vazia — clone não baixa submódulos sozinho. Inicialize-o.",
+    hint: "A mesma ação usada para registrar um submódulo novo também serve para preparar um que já está declarado no '.gitmodules', sem argumentos de url — só o subcomando 'submodule' e essa ação.",
+    setup: () => withUninitializedSubmodule(),
+    goal: (s) => s.submodules["libs/ui-kit"]?.initialized === true,
+  },
+  {
+    id: "submodule-update-1",
+    trilha: "Submódulos",
+    title: "Traga o conteúdo do submódulo",
+    description:
+      "'libs/ui-kit' já foi inicializado, mas a pasta ainda está vazia — falta trazer o conteúdo de verdade, no commit que o projeto principal espera.",
+    hint: "Existe uma terceira ação do mesmo subcomando 'submodule' que efetivamente baixa (ou atualiza) o conteúdo de um submódulo já inicializado.",
+    setup: () => withInitializedSubmodule(),
+    goal: (s) => s.submodules["libs/ui-kit"]?.commit !== null,
+  },
+  {
+    id: "submodule-status-1",
+    trilha: "Submódulos",
+    title: "Veja o estado dos submódulos",
+    description: "'libs/ui-kit' já está inicializado e atualizado. Confira o estado dos submódulos do projeto.",
+    hint: "Mesmo subcomando 'submodule' de novo — a ação que só lista, sem mudar nada, é a mesma palavra que você já usa pra checar o estado geral de um repositório git.",
+    setup: () => withUpdatedSubmodule(),
+    goal: (s) => s.lastSubmoduleAction === "status",
   },
 ];
