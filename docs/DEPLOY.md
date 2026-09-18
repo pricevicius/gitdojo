@@ -14,6 +14,22 @@ O projeto é um SPA estático (Vite/React), sem backend por enquanto. Hospedado 
 deploy separado por dojo — um dojo novo (ex: MySQL) é só código novo mais um domínio
 adicionado ao mesmo projeto, não uma infraestrutura nova.
 
+## SEO / preview de link por domínio
+
+Como o roteamento é client-side, o `index.html` sozinho não consegue ter um
+`<title>`/Open Graph diferente por domínio — crawler de link preview (WhatsApp, Slack,
+Twitter) não executa JS, só lê o HTML puro. Isso é resolvido por
+[functions/_middleware.ts](../functions/_middleware.ts), uma **Cloudflare Pages
+Function**: intercepta a resposta HTML antes de sair e reescreve `<title>`,
+`description` e as tags `og:*`/`twitter:*` de acordo com o hostname da request, usando
+`HTMLRewriter` (API nativa do Workers runtime, sem SSR de verdade). As imagens de
+preview (1200×630) ficam em `public/og/{root,git,wpcli}.png`. Host desconhecido
+(preview do Cloudflare Pages, IP) cai no conteúdo genérico do `index.html`.
+
+`functions/` é convenção do Cloudflare Pages — o `wrangler pages deploy` detecta e
+builda essa pasta sozinho, sem passo extra no `deploy.yml`. Pra testar localmente:
+`npm run build && npx wrangler pages dev dist`.
+
 ## CI/CD
 
 [.github/workflows/deploy.yml](../.github/workflows/deploy.yml) builda e publica a cada
