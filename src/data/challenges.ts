@@ -1,15 +1,8 @@
 import type { RepoState } from "../engine/types";
 import { createInitialState } from "../engine/types";
+import type { DojoChallenge } from "../dojo/types";
 
-export interface Challenge {
-  id: string;
-  trilha: string;
-  title: string;
-  description: string;
-  hint: string;
-  setup: () => RepoState;
-  goal: (state: RepoState) => boolean;
-}
+export type Challenge = DojoChallenge<RepoState>;
 
 const TRILHAS_ORDER = ["Fundamentos", "Branching", "Tags", "Desfazer", "Remoto"] as const;
 export { TRILHAS_ORDER };

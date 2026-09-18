@@ -1,7 +1,7 @@
-import type { Challenge } from "../data/challenges";
+import type { ChallengeMeta } from "../dojo/types";
 
 interface Props {
-  challenge: Challenge;
+  challenge: ChallengeMeta;
   index: number;
   total: number;
   solved: boolean;

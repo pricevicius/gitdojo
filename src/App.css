@@ -4,6 +4,13 @@
   padding: 24px 20px 60px;
 }
 
+.app-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 .app-header h1 {
   margin: 0 0 4px;
   font-size: 28px;
@@ -11,6 +18,47 @@
 .app-header p {
   margin: 0 0 20px;
   color: var(--text-dim);
+}
+
+.dojo-switcher {
+  display: flex;
+  gap: 8px;
+}
+.dojo-switcher-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.dojo-switcher-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.dojo-preface {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.dojo-preface h3 {
+  margin: 0 0 8px;
+}
+.dojo-preface p {
+  margin: 0 0 8px;
+  color: var(--text-dim);
+}
+.dojo-preface-steps {
+  background: var(--bg-panel-2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  margin: 8px 0 0;
 }
 
 /* Challenge nav */
@@ -185,6 +233,40 @@
   padding: 2px 6px;
   border-radius: 4px;
 }
+/* WpStatus */
+.wp-status {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.wp-status-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+.wp-status-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+}
+.wp-status-step.done {
+  color: var(--text);
+}
+.wp-status-check {
+  font-weight: bold;
+  width: 1.2em;
+}
+.wp-status-site {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
 .commit-node {
   fill: var(--bg-panel-2);
   stroke: var(--edge-color);

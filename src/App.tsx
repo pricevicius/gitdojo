@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
-import type { RepoState } from "./engine/types";
-import { runCommand } from "./engine/commands";
-import { CHALLENGES, TRILHAS_ORDER } from "./data/challenges";
+import type { Dojo } from "./dojo/types";
+import { gitDojo } from "./dojo/git";
+import { wpDojo } from "./dojo/wp";
 import Terminal from "./components/Terminal";
-import Graph from "./components/Graph";
 import Dictionary from "./components/Dictionary";
 import ChallengePanel from "./components/ChallengePanel";
 import ChallengeNav from "./components/ChallengeNav";
 import "./App.css";
+
+// Lista de dojos plugados na aplicação. Cada um tem seu próprio TState (RepoState,
+// WpState, ...); o `any` aqui apaga esse tipo de propósito para permitir uma lista
+// heterogênea — o runtime garante o invariante de que o estado sempre vem do
+// createInitialState()/setup() do próprio dojo ativo, nunca é misturado entre dojos.
+type AnyDojo = Dojo<any>;
+const DOJOS: AnyDojo[] = [gitDojo, wpDojo];
+const ACTIVE_DOJO_KEY = "gitdojo_active_dojo";
 
 interface LogLine {
   kind: "input" | "output" | "error";
@@ -19,10 +26,14 @@ const LEGACY_PROGRESS_KEY = "gitdojo_challenge_index";
 const UNLOCKED_KEY = "gitdojo_unlocked_commands";
 const SOLVED_KEY = "gitdojo_solved_challenges";
 
+function progressKey(domainSlug: string): string {
+  return `${PROGRESS_KEY}_${domainSlug}`;
+}
+
 /**
- * Ordem dos desafios antes de 'git merge' entrar na trilha Branching. Versões
- * antigas salvavam o progresso como índice, então inserir um desafio no meio
- * movia o jogador de lugar; esta lista converte aquele índice no id certo.
+ * Ordem dos desafios de git antes de 'git merge' entrar na trilha Branching e
+ * antes do progresso passar a ser escopado por dojo. Versões antigas salvavam
+ * o progresso como índice; esta lista converte aquele índice no id certo.
  */
 const LEGACY_ORDER = [
   "init-1",
@@ -37,23 +48,36 @@ const LEGACY_ORDER = [
   "tag-a-1",
 ];
 
-function indexOfChallenge(id: string | null | undefined): number {
+function indexOfChallenge(dojo: AnyDojo, id: string | null | undefined): number {
   if (!id) return 0;
-  const i = CHALLENGES.findIndex((c) => c.id === id);
+  const i = dojo.challenges.findIndex((c) => c.id === id);
   return i === -1 ? 0 : i;
 }
 
-function loadProgress(): number {
+function loadProgressIndex(dojo: AnyDojo): number {
   try {
-    const savedId = localStorage.getItem(PROGRESS_KEY);
-    if (savedId) return indexOfChallenge(savedId);
+    const savedId = localStorage.getItem(progressKey(dojo.domainSlug));
+    if (savedId) return indexOfChallenge(dojo, savedId);
 
-    const legacyIndex = localStorage.getItem(LEGACY_PROGRESS_KEY);
-    if (legacyIndex) return indexOfChallenge(LEGACY_ORDER[parseInt(legacyIndex, 10)]);
+    if (dojo.domainSlug === "git") {
+      const legacyIndex = localStorage.getItem(LEGACY_PROGRESS_KEY);
+      if (legacyIndex) return indexOfChallenge(dojo, LEGACY_ORDER[parseInt(legacyIndex, 10)]);
+    }
   } catch {
     // localStorage indisponível (aba anônima, cookies bloqueados): começa do zero.
   }
   return 0;
+}
+
+function loadActiveDojoIndex(): number {
+  try {
+    const slug = localStorage.getItem(ACTIVE_DOJO_KEY);
+    if (!slug) return 0;
+    const i = DOJOS.findIndex((d) => d.domainSlug === slug);
+    return i === -1 ? 0 : i;
+  } catch {
+    return 0;
+  }
 }
 
 function loadUnlocked(): Set<string> {
@@ -77,10 +101,13 @@ function loadSolved(): Set<string> {
 }
 
 export default function App() {
-  const [challengeIndex, setChallengeIndex] = useState(loadProgress);
-  const challenge = CHALLENGES[challengeIndex];
+  const [dojoIndex, setDojoIndex] = useState(loadActiveDojoIndex);
+  const dojo = DOJOS[dojoIndex];
 
-  const [repoState, setRepoState] = useState<RepoState>(() => challenge.setup());
+  const [challengeIndex, setChallengeIndex] = useState(() => loadProgressIndex(dojo));
+  const challenge = dojo.challenges[challengeIndex];
+
+  const [engineState, setEngineState] = useState(() => challenge.setup());
   const [log, setLog] = useState<LogLine[]>([]);
   const [showHint, setShowHint] = useState(false);
   const [unlocked, setUnlocked] = useState<Set<string>>(loadUnlocked);
@@ -89,12 +116,20 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(PROGRESS_KEY, CHALLENGES[challengeIndex].id);
-      localStorage.removeItem(LEGACY_PROGRESS_KEY);
+      localStorage.setItem(ACTIVE_DOJO_KEY, dojo.domainSlug);
+    } catch {
+      // sem localStorage o dojo ativo simplesmente não persiste.
+    }
+  }, [dojo.domainSlug]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(progressKey(dojo.domainSlug), challenge.id);
+      if (dojo.domainSlug === "git") localStorage.removeItem(LEGACY_PROGRESS_KEY);
     } catch {
       // sem localStorage o progresso simplesmente não persiste.
     }
-  }, [challengeIndex]);
+  }, [dojo.domainSlug, challenge.id]);
 
   useEffect(() => {
     try {
@@ -104,7 +139,7 @@ export default function App() {
     }
   }, [unlocked]);
 
-  const solved = challenge.goal(repoState);
+  const solved = challenge.goal(engineState);
 
   function markSolved(id: string) {
     setSolvedIds((prev) => {
@@ -121,8 +156,8 @@ export default function App() {
   }
 
   function handleRun(command: string) {
-    const result = runCommand(command, repoState);
-    setRepoState(result.state);
+    const result = dojo.runCommand(command, engineState);
+    setEngineState(result.state);
     if (result.unlockedCommand) {
       setUnlocked((prev) => {
         if (prev.has(result.unlockedCommand!)) return prev;
@@ -138,7 +173,7 @@ export default function App() {
   }
 
   function resetChallenge(index: number) {
-    setRepoState(CHALLENGES[index].setup());
+    setEngineState(dojo.challenges[index].setup());
     setLog([]);
     setShowHint(false);
   }
@@ -149,23 +184,61 @@ export default function App() {
   }
 
   function handleNext() {
-    goToChallenge(Math.min(challengeIndex + 1, CHALLENGES.length - 1));
+    goToChallenge(Math.min(challengeIndex + 1, dojo.challenges.length - 1));
   }
 
   function handleReset() {
     resetChallenge(challengeIndex);
   }
 
+  function handleSelectDojo(index: number) {
+    if (index === dojoIndex) return;
+    const nextDojo = DOJOS[index];
+    const nextChallengeIndex = loadProgressIndex(nextDojo);
+    setDojoIndex(index);
+    setChallengeIndex(nextChallengeIndex);
+    setEngineState(nextDojo.challenges[nextChallengeIndex].setup());
+    setLog([]);
+    setShowHint(false);
+    setTerminalOpen(false);
+  }
+
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🥋 Git Dojo</h1>
-        <p>Aprenda comandos git praticando — e monte seu próprio dicionário.</p>
+        <div className="app-header-top">
+          <div>
+            <h1>🥋 Dojo</h1>
+            <p>Aprenda comandos de {dojo.label} praticando — e monte seu próprio dicionário.</p>
+          </div>
+          <div className="dojo-switcher">
+            {DOJOS.map((d, i) => (
+              <button
+                key={d.domainSlug}
+                type="button"
+                className={i === dojoIndex ? "dojo-switcher-btn active" : "dojo-switcher-btn"}
+                onClick={() => handleSelectDojo(i)}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
+      {dojo.preface && (
+        <div className="dojo-preface">
+          <h3>{dojo.preface.title}</h3>
+          {dojo.preface.intro?.map((line, i) => <p key={i}>{line}</p>)}
+          <pre className="dojo-preface-steps">
+            <code>{dojo.preface.steps.join("\n")}</code>
+          </pre>
+        </div>
+      )}
+
       <ChallengeNav
-        challenges={CHALLENGES}
-        trilhasOrder={TRILHAS_ORDER}
+        challenges={dojo.challenges}
+        trilhasOrder={dojo.trilhasOrder}
         currentId={challenge.id}
         solvedIds={solvedIds}
         onSelect={goToChallenge}
@@ -174,7 +247,7 @@ export default function App() {
       <ChallengePanel
         challenge={challenge}
         index={challengeIndex}
-        total={CHALLENGES.length}
+        total={dojo.challenges.length}
         solved={solved}
         showHint={showHint}
         onToggleHint={() => setShowHint((v) => !v)}
@@ -185,9 +258,10 @@ export default function App() {
 
       <main className="app-main">
         <section className="app-workspace">
-          <Graph state={repoState} />
+          <dojo.Visualization state={engineState} />
           <Terminal
             challenge={challenge}
+            commandPrefix={dojo.commandPrefix}
             solved={solved}
             onRun={handleRun}
             onNext={handleNext}
@@ -198,7 +272,12 @@ export default function App() {
           />
         </section>
         <aside className="app-sidebar">
-          <Dictionary unlocked={unlocked} currentTrilha={challenge.trilha} />
+          <Dictionary
+            dictionary={dojo.dictionary}
+            categories={dojo.trilhasOrder}
+            unlocked={unlocked}
+            currentTrilha={challenge.trilha}
+          />
         </aside>
       </main>
     </div>
