@@ -22,7 +22,7 @@ export default function LandingPage({ dojos }: LandingPageProps) {
           Treine comandos de linha de comando praticando de verdade — não decorando.
         </p>
         <a className="landing-cta" href={`https://${dojos[0].subdomain}.odojo.com.br`}>
-          Comece pelo {dojos[0].label}
+          Começar
         </a>
       </header>
 
@@ -49,8 +49,8 @@ export default function LandingPage({ dojos }: LandingPageProps) {
             <h3>Por que "Dojo"</h3>
             <p>
               A mesma estrutura de terminal, desafio e dicionário serve pra qualquer CLI —
-              hoje git e wp-cli, amanhã o que a comunidade quiser trazer. Não é um curso de
-              git; é uma forma de treinar memória muscular de comando, generalizável.
+              hoje git e wp-cli, amanhã o que a comunidade quiser trazer. Não é um curso;
+              é uma forma de treinar memória muscular de comando.
             </p>
           </div>
         </div>

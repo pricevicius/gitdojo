@@ -1,12 +1,32 @@
-# 🥋 Git Dojo
+# 🥋 Dojo
 
-Um jogo web para ensinar comandos e conceitos de git na prática — feito para ajudar devs juniores a construir memória muscular com git de forma visual, sem depender só de decoreba ou de "aprender apanhando" em produção.
+Treine comandos de linha de comando praticando de verdade — não decorando.
+Hoje: **git** e **wp-cli**. Amanhã, o que a comunidade trouxer.
+
+→ https://odojo.com.br
+
+## De onde veio o nome do repositório
+
+Isso nasceu como "Git Dojo": eu não lembrava o comando pra importar um
+submódulo no git — de novo — e resolvi fazer um lugar pra treinar isso.
+Quando o primeiro dojo ficou de pé, ficou claro que a estrutura (terminal
+simulado + desafio + dicionário) não tinha nada de específico de git, e
+serviria pra qualquer CLI. O produto virou Dojo; o repositório continua
+`gitdojo`, porque foi de onde a ideia saiu.
 
 ## A ideia
 
-Em vez de ler documentação ou decorar comandos, a pessoa resolve desafios reais digitando comandos git num terminal simulado, e vê o efeito imediatamente em um grafo de commits/branches/tags. Cada comando executado com sucesso desbloqueia um verbete num **dicionário pessoal** — um glossário que vai sendo construído pelo próprio aprendizado, servindo de referência rápida depois.
+Ferramenta de linha de comando se aprende de dois jeitos ruins: decorando
+comando por comando sem entender o efeito, ou apanhando direto em produção,
+quando o erro já custou caro.
 
-**Ordem pedagógica proposta:** primeiro o comando (o "vocabulário"), depois — em uma camada futura — as boas práticas e regras (quando/por que usar cada um). A ideia é que, ao aprender as boas práticas, a pessoa já saiba exatamente quais comandos usar para aplicá-las.
+Aqui você resolve desafios digitando comandos de verdade num terminal
+simulado e vê o efeito na hora. Errar não custa nada — é só resetar o
+desafio. Cada comando que você domina vira um verbete no seu dicionário
+pessoal, que fica como referência depois.
+
+A sequência prioriza o comando ("vocabulário") antes das boas práticas e do
+quando/por que usar cada um.
 
 ## Como funciona hoje
 
@@ -15,7 +35,7 @@ Em vez de ler documentação ou decorar comandos, a pessoa resolve desafios reai
 - **Trilhas de desafios**: sequência de exercícios agrupados por tema (Fundamentos → Branching → Tags), cada um com descrição do cenário e uma dica opcional.
 - **Dicionário pessoal**: sidebar que mostra os comandos já desbloqueados (com explicação curta + exemplo) e mantém os ainda não aprendidos como "🔒 ???". Progresso salvo em `localStorage`.
 
-> **Importante:** o simulador de git **não usa o git de verdade** (nem `isomorphic-git`). É uma engine própria em memória (`src/engine`) que modela um subconjunto de comandos/estado de forma simplificada — trade-off consciente para ter controle total sobre mensagens de erro e feedback pedagógico, mas significa que o comportamento pode divergir do git real em casos avançados (ex: sem staging por arquivo de verdade, sem merge/rebase ainda).
+> **Importante:** o simulador de git **não usa o git de verdade** (nem `isomorphic-git`). É uma engine própria em memória (`src/engine`) que modela um subconjunto de comandos/estado de forma simplificada — trade-off consciente para ter controle total sobre mensagens de erro e feedback pedagógico, mas significa que o comportamento pode divergir do git real em casos avançados (ex: sem staging por arquivo de verdade, sem merge/rebase ainda). O dojo de wp-cli tem sua própria engine, seguindo o mesmo contrato.
 
 ## Stack
 
@@ -121,7 +141,7 @@ substituir os stubs por conteúdo de verdade:
 
 - Trilhas de **Merge & Conflitos** e **Rebase** (`git merge`, resolução de conflito, `git rebase -i`, `git cherry-pick`)
 - Trilha de **Remoto** (`git clone`, `git push`, `git pull`, `git fetch`)
-- Camada extra de **Boas Práticas**, desbloqueada depois de uma base de comandos already aprendida, linkando cada prática aos comandos do dicionário que ela usa
+- Camada extra de **Boas Práticas**, desbloqueada depois de uma base de comandos já aprendida, linkando cada prática aos comandos do dicionário que ela usa
 - Persistência do progresso em conta/backend (hoje é só `localStorage`, por navegador)
 
-Pull requests são bem-vindos — a ideia é que esse projeto vire uma ferramenta de onboarding real para times, então feedback de quem está aprendendo (e não só de quem já sabe git) é especialmente valioso.
+Pull requests são bem-vindos — a ideia é que esse projeto vire uma ferramenta de onboarding real, então feedback de quem está aprendendo (e não só de quem já sabe git) é especialmente valioso.
