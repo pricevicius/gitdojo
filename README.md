@@ -32,7 +32,7 @@ quando/por que usar cada um.
 
 - **Terminal simulado**: interpreta comandos git reais (`git init`, `git add`, `git commit -m "..."`, `git branch`, `git checkout`, `git switch`, `git tag`, etc.) e responde com mensagens parecidas com as do git de verdade.
 - **Grafo de commits em SVG**: desenha commits, branches (com HEAD destacado) e tags, atualizando a cada comando.
-- **Trilhas de desafios**: sequência de exercícios agrupados por tema (Fundamentos → Branching → Tags), cada um com descrição do cenário e uma dica opcional.
+- **Trilhas de desafios**: sequência de exercícios agrupados por tema (Fundamentos → Branching → Tags → Desfazer → Remoto → Submódulos → Stash → Inspeção → Arquivos → Avançado), cada um com descrição do cenário e uma dica opcional.
 - **Dicionário pessoal**: sidebar que mostra os comandos já desbloqueados (com explicação curta + exemplo) e mantém os ainda não aprendidos como "🔒 ???". Progresso salvo em `localStorage`.
 
 > **Importante:** o simulador de git **não usa o git de verdade** (nem `isomorphic-git`). É uma engine própria em memória (`src/engine`) que modela um subconjunto de comandos/estado de forma simplificada — trade-off consciente para ter controle total sobre mensagens de erro e feedback pedagógico, mas significa que o comportamento pode divergir do git real em casos avançados (ex: sem staging por arquivo de verdade, sem merge/rebase ainda). O dojo de wp-cli tem sua própria engine, seguindo o mesmo contrato.
@@ -140,7 +140,6 @@ substituir os stubs por conteúdo de verdade:
 ### Ideias já mapeadas para próximos passos
 
 - Trilhas de **Merge & Conflitos** e **Rebase** (`git merge`, resolução de conflito, `git rebase -i`, `git cherry-pick`)
-- Trilha de **Remoto** (`git clone`, `git push`, `git pull`, `git fetch`)
 - Camada extra de **Boas Práticas**, desbloqueada depois de uma base de comandos já aprendida, linkando cada prática aos comandos do dicionário que ela usa
 - Persistência do progresso em conta/backend (hoje é só `localStorage`, por navegador)
 
