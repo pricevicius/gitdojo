@@ -13,6 +13,13 @@ export interface DojoCommandResult<TState> {
   output: string[];
   state: TState;
   unlockedCommand?: string;
+  /**
+   * Vários verbetes de uma vez. Um dojo com `inputMode: "editor"` executa
+   * várias linhas por envio, e aí um envio só pode ensinar mais de um
+   * conceito — com o campo singular a pessoa perderia os outros. Dojos de
+   * terminal continuam usando só `unlockedCommand`.
+   */
+  unlockedCommands?: string[];
 }
 
 /**
@@ -26,6 +33,15 @@ export interface ChallengeMeta {
   title: string;
   description: string;
   hint: string;
+  /**
+   * Código já carregado no editor quando o desafio abre (só para dojos com
+   * `inputMode: "editor"`). Serve para quem está começando não encarar uma
+   * tela em branco e, principalmente, para o esqueleto já indicar ONDE a
+   * linha nova entra — errar o lugar é o tropeço mais comum de quem ainda não
+   * tem o modelo mental de classe. Deixe vazio quando a estrutura em si for a
+   * lição.
+   */
+  starter?: string;
 }
 
 export interface DojoChallenge<TState> extends ChallengeMeta {
@@ -57,6 +73,13 @@ export interface Dojo<TState> {
   tagline?: string;
   /** Nome do binário digitado no terminal (ex. "git", "wp") — só para placeholder/UI. */
   commandPrefix: string;
+  /**
+   * Como a pessoa escreve o comando. "terminal" (padrão) é a linha única de
+   * sempre; "editor" abre um editor de código de várias linhas, para dojos
+   * onde o que se digita é código e não um comando curto — escrever uma
+   * classe inteira numa linha só seria hostil. Ver CodeEditor.tsx.
+   */
+  inputMode?: "terminal" | "editor";
   trilhasOrder: readonly string[];
   runCommand: (input: string, prev: TState) => DojoCommandResult<TState>;
   createInitialState: () => TState;

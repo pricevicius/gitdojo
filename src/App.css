@@ -747,3 +747,344 @@
   cursor: pointer;
   font-size: 12.5px;
 }
+
+/* --- Dojo de Java: hierarquia de tipos e objetos vivos --- */
+.java-viz {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.java-viz .hint {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0;
+}
+.java-viz-empty {
+  gap: 6px;
+}
+.java-section-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.java-type-list,
+.java-object-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.java-type {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--edge-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.java-type.interface {
+  border-left-style: dashed;
+  border-left-color: var(--accent-dim);
+}
+.java-type-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.java-type-kind {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--accent);
+}
+.java-type-name {
+  font-weight: 600;
+}
+.java-type-rel {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.java-type-rel strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.java-members {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.java-member {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+.java-member-type {
+  color: var(--text-dim);
+}
+.java-ctor {
+  color: var(--accent);
+}
+.java-lock {
+  margin-right: 4px;
+  font-size: 10px;
+}
+.java-override {
+  color: var(--accent);
+  margin-right: 6px;
+  font-size: 11px;
+}
+.java-type-empty {
+  margin-top: 8px;
+}
+.java-object {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.java-object-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.java-object-name {
+  font-family: monospace;
+  font-weight: 600;
+}
+.java-object-type {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.java-object-actual {
+  font-size: 11px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.java-fields {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.java-field {
+  display: flex;
+  gap: 8px;
+  font-family: monospace;
+  font-size: 12px;
+}
+.java-field-name {
+  color: var(--text-dim);
+  min-width: 90px;
+}
+.java-printed {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* --- Editor de código (dojos com inputMode: "editor") --- */
+.code-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.code-editor-challenge {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+.code-editor-challenge h3 {
+  margin: 6px 0 8px;
+  font-size: 17px;
+}
+.code-editor-challenge p {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.code-editor-trilha {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+.code-editor-shell {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.code-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.code-editor-filename {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.code-editor-shortcut {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.code-editor-shortcut kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+.code-editor-body {
+  display: flex;
+  background: var(--bg);
+  max-height: 340px;
+}
+.code-gutter {
+  flex: 0 0 auto;
+  padding: 12px 0;
+  background: var(--bg-panel-2);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  user-select: none;
+}
+.code-gutter-line {
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  text-align: right;
+  padding: 0 10px;
+  min-width: 42px;
+}
+.code-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+/* As duas camadas precisam da MESMA métrica de texto para o destaque de
+   sintaxe ficar alinhado com o que a pessoa digita. */
+.code-layer {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 4;
+  border: 0;
+}
+.code-highlight {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  color: var(--text);
+}
+.code-input {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  max-height: 340px;
+  resize: vertical;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--accent);
+  outline: none;
+  overflow: auto;
+}
+.code-input::selection {
+  background: var(--accent-dim);
+}
+.code-placeholder {
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+.tok-keyword {
+  color: #c792ea;
+}
+.tok-type {
+  color: #82aaff;
+}
+.tok-string {
+  color: #c3e88d;
+}
+.tok-number {
+  color: #f78c6c;
+}
+.tok-comment {
+  color: var(--text-dim);
+  font-style: italic;
+}
+.tok-annotation {
+  color: #ffcb6b;
+}
+.code-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.code-editor-clear {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.code-editor-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.code-editor-solved {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.code-editor-output {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.code-editor-output-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}

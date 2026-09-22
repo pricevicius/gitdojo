@@ -1,7 +1,8 @@
 # 🥋 Dojo
 
 Treine comandos de linha de comando praticando de verdade — não decorando.
-Hoje: **git**, **wp-cli** e **Claude Code**. Amanhã, o que a comunidade trouxer.
+Hoje: **git**, **wp-cli**, **Claude Code** e **Java OOP**. Amanhã, o que a
+comunidade trouxer.
 
 → https://odojo.com.br
 
@@ -106,7 +107,16 @@ src/
 
 O projeto é multi-ferramenta: qualquer CLI (docker, kubectl, npm, ...) pode virar um dojo
 implementando o contrato `Dojo<TState>` definido em `src/dojo/types.ts` — o mesmo que git e
-wp-cli já implementam (`src/dojo/git.ts`, `src/dojo/wp.ts`). Para começar:
+wp-cli já implementam (`src/dojo/git.ts`, `src/dojo/wp.ts`).
+
+Um dojo não precisa ser um binário com subcomandos. O de Claude Code e o de Java mostram o
+outro formato possível: um REPL, onde o binário só abre a sessão (`claude`, `jshell`) e
+depois disso o que se digita é a própria linguagem, sem prefixo. O contrato é o mesmo; o que
+muda é o `runCommand` ter dois modos. Se a ferramenta que você quer ensinar é interativa,
+siga `src/engine/claude-code/commands.ts` ou `src/engine/java/commands.ts` em vez de
+`src/engine/wp/commands.ts`.
+
+Para começar:
 
 ```bash
 npm run create-dojo -- --slug docker --subdomain docker --label Docker --prefix docker
