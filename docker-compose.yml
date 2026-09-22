@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gitdojo
+      POSTGRES_PASSWORD: gitdojo
+      POSTGRES_DB: gitdojo
+    ports:
+      - "5432:5432"
+    volumes:
+      - gitdojo_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - gitdojo_redis_data:/data
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://gitdojo:gitdojo@postgres:5432/gitdojo?schema=public
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: http://localhost:5173
+      NODE_ENV: production
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  gitdojo_postgres_data:
+  gitdojo_redis_data:

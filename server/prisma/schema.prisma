@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Perfil público. Sem email/senha aqui de propósito — isso vive em AuthIdentity,
+/// pra login com Google/GitHub no futuro só adicionar linhas ali, sem migração.
+model User {
+  id             String          @id @default(cuid())
+  displayName    String
+  createdAt      DateTime        @default(now())
+  authIdentities AuthIdentity[]
+  attempts       Attempt[]
+  bests          ChallengeBest[]
+}
+
+/// Uma credencial de login por linha. provider "password" usa passwordHash;
+/// providers OAuth (google/github) vão usar só providerAccountId + email.
+model AuthIdentity {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String
+  passwordHash      String?
+  email             String?
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Um "domínio" de dojo (git hoje; sql/java/etc no futuro). Bate com
+/// Dojo.domainSlug no frontend (ver src/dojo/types.ts).
+model Domain {
+  id         String      @id @default(cuid())
+  slug       String      @unique
+  name       String
+  challenges Challenge[]
+}
+
+/// slug bate com ChallengeMeta.id do frontend (src/data/*Challenges.ts).
+/// Único por (domainId, slug): o mesmo slug pode existir em domínios diferentes.
+model Challenge {
+  id        String          @id @default(cuid())
+  domainId  String
+  domain    Domain          @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  slug      String
+  trilha    String
+  attempts  Attempt[]
+  bests     ChallengeBest[]
+
+  @@unique([domainId, slug])
+}
+
+/// Log append-only: uma linha por vez que um desafio é resolvido (inclusive revisitas).
+model Attempt {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId   String
+  challenge     Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  commandCount  Int
+  completedAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([challengeId])
+}
+
+/// Melhor tentativa por (userId, challengeId), mantida em upsert transacional
+/// junto do insert de Attempt — evita agregar Attempt toda vez que o
+/// progresso pessoal é lido.
+model ChallengeBest {
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId    String
+  challenge      Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  bestAttempts   Int
+  timesCompleted Int       @default(1)
+  updatedAt      DateTime  @updatedAt
+
+  @@id([userId, challengeId])
+}
