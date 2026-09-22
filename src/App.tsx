@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DOJOS, type AnyDojo } from "./dojo/registry";
 import Terminal from "./components/Terminal";
+import CodeEditor from "./components/CodeEditor";
 import Dictionary from "./components/Dictionary";
 import ChallengePanel from "./components/ChallengePanel";
 import ChallengeNav from "./components/ChallengeNav";
@@ -122,6 +123,9 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [rankingRefresh, setRankingRefresh] = useState(0);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  // Muda a key do editor para ele remontar (e recarregar o starter) ao reiniciar.
+  const [resetNonce, setResetNonce] = useState(0);
 
   useEffect(() => {
     if (!isRankingEnabled()) return;
@@ -179,11 +183,18 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
     setEngineState(result.state);
     const nextCommandCount = commandCount + 1;
     setCommandCount(nextCommandCount);
-    if (result.unlockedCommand) {
+    // Um dojo de terminal ensina um verbete por comando; um de editor pode
+    // ensinar vários de uma vez, porque roda várias linhas por envio.
+    const aprendidos = [
+      ...(result.unlockedCommand ? [result.unlockedCommand] : []),
+      ...(result.unlockedCommands ?? []),
+    ];
+    if (aprendidos.length > 0) {
       setUnlocked((prev) => {
-        if (prev.has(result.unlockedCommand!)) return prev;
+        const novos = aprendidos.filter((c) => !prev.has(c));
+        if (novos.length === 0) return prev;
         const next = new Set(prev);
-        next.add(result.unlockedCommand!);
+        for (const c of novos) next.add(c);
         return next;
       });
     }
@@ -205,6 +216,7 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
     setLog([]);
     setShowHint(false);
     setCommandCount(0);
+    setResetNonce((n) => n + 1);
   }
 
   function goToChallenge(index: number) {
@@ -313,23 +325,45 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
         onToggleHint={() => setShowHint((v) => !v)}
         onNext={handleNext}
         onReset={handleReset}
-        onOpenTerminal={() => setTerminalOpen(true)}
+        onOpenTerminal={() => {
+          // No modo editor não há modal para abrir: o editor já está na tela,
+          // então "Responder" leva o foco até ele.
+          if (dojo.inputMode === "editor") {
+            editorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            editorRef.current?.focus();
+          } else {
+            setTerminalOpen(true);
+          }
+        }}
       />
 
       <main className="app-main">
         <section className="app-workspace">
           <dojo.Visualization state={engineState} />
-          <Terminal
-            challenge={challenge}
-            commandPrefix={dojo.commandPrefix}
-            solved={solved}
-            onRun={handleRun}
-            onNext={handleNext}
-            log={log}
-            setLog={setLog}
-            isOpen={terminalOpen}
-            setIsOpen={setTerminalOpen}
-          />
+          {dojo.inputMode === "editor" ? (
+            <CodeEditor
+              key={`${challenge.id}-${resetNonce}`}
+              starter={challenge.starter}
+              solved={solved}
+              inputRef={editorRef}
+              onRun={handleRun}
+              onNext={handleNext}
+              log={log}
+              setLog={setLog}
+            />
+          ) : (
+            <Terminal
+              challenge={challenge}
+              commandPrefix={dojo.commandPrefix}
+              solved={solved}
+              onRun={handleRun}
+              onNext={handleNext}
+              log={log}
+              setLog={setLog}
+              isOpen={terminalOpen}
+              setIsOpen={setTerminalOpen}
+            />
+          )}
         </section>
         <aside className="app-sidebar">
           {/* Sem VITE_API_URL (build estático puro, ex. Cloudflare Pages hoje) o
