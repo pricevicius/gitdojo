@@ -62,6 +62,26 @@ npm run test        # testes do engine e dos desafios (vitest)
 npx tsc --noEmit   # type-check sem gerar arquivos
 ```
 
+## Ranking (opcional, precisa de backend)
+
+Sem nada configurado, o dojo continua 100% estático — a aba de ranking nem aparece na
+sidebar (só o dicionário), porque backend não faz parte dessa stack. Pra rodar o
+ranking localmente:
+
+```bash
+docker compose up -d postgres redis   # sobe só os bancos
+cd server
+cp .env.example .env
+npm install
+npm run prisma:migrate                 # cria o schema
+npm run prisma:seed                    # cria os domínios (git, wp-cli)
+npm run dev                            # API em http://localhost:3001
+```
+
+No frontend, crie `.env.local` na raiz com `VITE_API_URL=http://localhost:3001` e rode
+`npm run dev` normalmente. Detalhes de schema, endpoints e decisões em
+[docs/PLANO_RANKING.md](docs/PLANO_RANKING.md).
+
 ## Estrutura do projeto
 
 ```
@@ -141,6 +161,5 @@ substituir os stubs por conteúdo de verdade:
 
 - Trilhas de **Merge & Conflitos** e **Rebase** (`git merge`, resolução de conflito, `git rebase -i`, `git cherry-pick`)
 - Camada extra de **Boas Práticas**, desbloqueada depois de uma base de comandos já aprendida, linkando cada prática aos comandos do dicionário que ela usa
-- Persistência do progresso em conta/backend (hoje é só `localStorage`, por navegador)
 
 Pull requests são bem-vindos — a ideia é que esse projeto vire uma ferramenta de onboarding real, então feedback de quem está aprendendo (e não só de quem já sabe git) é especialmente valioso.

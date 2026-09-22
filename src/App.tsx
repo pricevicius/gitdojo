@@ -4,6 +4,9 @@ import Terminal from "./components/Terminal";
 import Dictionary from "./components/Dictionary";
 import ChallengePanel from "./components/ChallengePanel";
 import ChallengeNav from "./components/ChallengeNav";
+import RankingPanel from "./components/RankingPanel";
+import AuthModal from "./components/AuthModal";
+import { completeChallenge, getMe, isRankingEnabled, logout, type AuthUser } from "./api/client";
 import "./App.css";
 
 const ACTIVE_DOJO_KEY = "gitdojo_active_dojo";
@@ -114,6 +117,20 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
   const [unlocked, setUnlocked] = useState<Set<string>>(loadUnlocked);
   const [solvedIds, setSolvedIds] = useState<Set<string>>(loadSolved);
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [commandCount, setCommandCount] = useState(0);
+  const [sidebarTab, setSidebarTab] = useState<"dictionary" | "ranking">("dictionary");
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [rankingRefresh, setRankingRefresh] = useState(0);
+
+  useEffect(() => {
+    if (!isRankingEnabled()) return;
+    getMe()
+      .then(setUser)
+      .catch(() => {
+        // sem sessão válida o ranking só mostra o CTA de login.
+      });
+  }, []);
 
   useEffect(() => {
     try {
@@ -157,8 +174,11 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
   }
 
   function handleRun(command: string) {
+    const wasSolvedBefore = challenge.goal(engineState);
     const result = dojo.runCommand(command, engineState);
     setEngineState(result.state);
+    const nextCommandCount = commandCount + 1;
+    setCommandCount(nextCommandCount);
     if (result.unlockedCommand) {
       setUnlocked((prev) => {
         if (prev.has(result.unlockedCommand!)) return prev;
@@ -169,6 +189,13 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
     }
     if (challenge.goal(result.state)) {
       markSolved(challenge.id);
+      if (!wasSolvedBefore && user) {
+        completeChallenge(dojo.domainSlug, challenge.id, nextCommandCount, challenge.trilha)
+          .then(() => setRankingRefresh((n) => n + 1))
+          .catch(() => {
+            // resolver o desafio já ficou salvo localmente; o ranking só não atualiza agora.
+          });
+      }
     }
     return { ok: result.ok, output: result.output };
   }
@@ -177,6 +204,7 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
     setEngineState(dojo.challenges[index].setup());
     setLog([]);
     setShowHint(false);
+    setCommandCount(0);
   }
 
   function goToChallenge(index: number) {
@@ -214,11 +242,29 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
     setEngineState(nextDojo.challenges[nextChallengeIndex].setup());
     setLog([]);
     setShowHint(false);
+    setCommandCount(0);
     setTerminalOpen(false);
+  }
+
+  function handleLogout() {
+    logout()
+      .catch(() => {
+        // mesmo se a chamada falhar (sessão já expirada, rede), limpa localmente.
+      })
+      .finally(() => setUser(null));
   }
 
   return (
     <div className="app">
+      {authModalOpen && (
+        <AuthModal
+          onClose={() => setAuthModalOpen(false)}
+          onAuthed={(authedUser) => {
+            setUser(authedUser);
+            setAuthModalOpen(false);
+          }}
+        />
+      )}
       <header className="app-header">
         <div className="app-header-top">
           <div>
@@ -286,12 +332,44 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
           />
         </section>
         <aside className="app-sidebar">
-          <Dictionary
-            dictionary={dojo.dictionary}
-            categories={dojo.trilhasOrder}
-            unlocked={unlocked}
-            currentTrilha={challenge.trilha}
-          />
+          {/* Sem VITE_API_URL (build estático puro, ex. Cloudflare Pages hoje) o
+              ranking não faz parte da stack — nem a aba aparece, não é só um estado
+              desabilitado. */}
+          {isRankingEnabled() && (
+            <div className="sidebar-tabs">
+              <button
+                type="button"
+                className={sidebarTab === "dictionary" ? "sidebar-tab active" : "sidebar-tab"}
+                onClick={() => setSidebarTab("dictionary")}
+              >
+                📖 Dicionário
+              </button>
+              <button
+                type="button"
+                className={sidebarTab === "ranking" ? "sidebar-tab active" : "sidebar-tab"}
+                onClick={() => setSidebarTab("ranking")}
+              >
+                🏆 Ranking
+              </button>
+            </div>
+          )}
+          {sidebarTab === "ranking" && isRankingEnabled() ? (
+            <RankingPanel
+              domain={dojo.domainSlug}
+              dojoLabel={dojo.label}
+              user={user}
+              onRequestLogin={() => setAuthModalOpen(true)}
+              onLogout={handleLogout}
+              refreshToken={rankingRefresh}
+            />
+          ) : (
+            <Dictionary
+              dictionary={dojo.dictionary}
+              categories={dojo.trilhasOrder}
+              unlocked={unlocked}
+              currentTrilha={challenge.trilha}
+            />
+          )}
         </aside>
       </main>
     </div>
