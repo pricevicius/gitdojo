@@ -72,15 +72,21 @@ export default function LandingPage({ dojos }: LandingPageProps) {
         <h2>Os dojos</h2>
         <div className="landing-dojo-grid">
           {dojos.map((dojo) => (
-            <a
-              key={dojo.domainSlug}
-              className="landing-dojo-card"
-              href={`https://${dojo.subdomain}.odojo.com.br`}
-            >
-              <h3>{dojo.label}</h3>
-              <p>{dojo.challenges.length} desafios</p>
-              {dojo.tagline && <p className="landing-dojo-tagline">{dojo.tagline}</p>}
-            </a>
+            <div key={dojo.domainSlug} className="landing-dojo-card">
+              <a className="landing-dojo-card-link" href={`https://${dojo.subdomain}.odojo.com.br`}>
+                <h3>{dojo.label}</h3>
+                <p>{dojo.challenges.length} desafios</p>
+                {dojo.tagline && <p className="landing-dojo-tagline">{dojo.tagline}</p>}
+              </a>
+              {dojo.contributor && (
+                <p className="landing-dojo-contributor">
+                  trilha contribuída por{" "}
+                  <a href={dojo.contributor.url} target="_blank" rel="noreferrer">
+                    {dojo.contributor.name}
+                  </a>
+                </p>
+              )}
+            </div>
           ))}
           <div className="landing-dojo-card landing-dojo-card--soon">
             <h3>O próximo é seu</h3>

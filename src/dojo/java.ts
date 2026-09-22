@@ -15,6 +15,7 @@ export const javaDojo: Dojo<JavaState> = {
   // O que se digita aqui é código, não um comando curto: escrever uma classe
   // inteira numa linha só seria hostil justamente para quem nunca programou.
   inputMode: "editor",
+  contributor: { name: "Eduardo Silva", url: "https://github.com/eduardonk9999" },
   trilhasOrder: JAVA_TRILHAS_ORDER,
   runCommand,
   createInitialState: createInitialJavaState,

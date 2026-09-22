@@ -88,4 +88,10 @@ export interface Dojo<TState> {
   Visualization: ComponentType<{ state: TState }>;
   /** Passo a passo real de instalação da ferramenta, mostrado antes do primeiro desafio. */
   preface?: DojoPreface;
+  /**
+   * Crédito público de quem contribuiu esse dojo (ver "Perfil do LinkedIn" no
+   * template de PR em docs/DEPLOY.md), exibido no card da landing page.
+   * Omitido para dojos mantidos pelo próprio autor do projeto.
+   */
+  contributor?: { name: string; url: string };
 }
