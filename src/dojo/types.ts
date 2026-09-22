@@ -53,6 +53,8 @@ export interface Dojo<TState> {
   /** Primeiro rótulo do hostname que abre esse dojo direto, ex. "git" em git.odojo.com.br. */
   subdomain: string;
   label: string;
+  /** Frase curta e pessoal exibida no card do dojo na landing page — opcional, use quando fizer sentido dar um tom mais direto/autoral àquele dojo específico. */
+  tagline?: string;
   /** Nome do binário digitado no terminal (ex. "git", "wp") — só para placeholder/UI. */
   commandPrefix: string;
   trilhasOrder: readonly string[];

@@ -107,6 +107,11 @@
   opacity: 0.6;
   cursor: default;
 }
+.landing-dojo-tagline {
+  margin-top: 8px !important;
+  font-style: italic;
+  color: var(--accent) !important;
+}
 
 .landing-link {
   display: inline-block;

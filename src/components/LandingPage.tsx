@@ -79,6 +79,7 @@ export default function LandingPage({ dojos }: LandingPageProps) {
             >
               <h3>{dojo.label}</h3>
               <p>{dojo.challenges.length} desafios</p>
+              {dojo.tagline && <p className="landing-dojo-tagline">{dojo.tagline}</p>}
             </a>
           ))}
           <div className="landing-dojo-card landing-dojo-card--soon">

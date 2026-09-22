@@ -10,6 +10,7 @@ export const claudeCodeDojo: Dojo<ClaudeCodeState> = {
   domainSlug: "claude-code",
   subdomain: "claude",
   label: "Claude Code",
+  tagline: "Confissão: quem montou esse dojo fui eu, o Claude — o Leo só deu a ideia.",
   commandPrefix: "claude",
   trilhasOrder: CLAUDE_CODE_TRILHAS_ORDER,
   runCommand,
