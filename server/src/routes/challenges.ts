@@ -1,18 +1,32 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { setLeaderboardScore } from "../redis.js";
+import { GLOBAL_DOMAIN_SLUG, setLeaderboardScore } from "../redis.js";
 import { requireAuth, type AuthedRequest } from "../middleware/requireAuth.js";
 
 export const challengesRouter = Router();
 
-async function recomputeScore(userId: string, domainId: string, domainSlug: string): Promise<number> {
-  const bests = await prisma.challengeBest.findMany({
-    where: { userId, challenge: { domainId } },
-    select: { bestAttempts: true },
-  });
-  const score = bests.reduce((sum, b) => sum + 10 - (b.bestAttempts - 1), 0);
-  await setLeaderboardScore(domainSlug, userId, score);
-  return score;
+function scoreFromBests(bests: { bestAttempts: number }[]): number {
+  return bests.reduce((sum, b) => sum + 10 - (b.bestAttempts - 1), 0);
+}
+
+/** Recalcula tanto o score do domínio quanto o score global (soma de todos os dojos que
+ * o usuário já jogou) e atualiza os dois sorted sets no Redis — é assim que um dojo novo
+ * (ex: docker) entra automaticamente no ranking unificado, sem código extra. */
+async function recomputeScores(userId: string, domainId: string, domainSlug: string): Promise<number> {
+  const [domainBests, allBests] = await Promise.all([
+    prisma.challengeBest.findMany({ where: { userId, challenge: { domainId } }, select: { bestAttempts: true } }),
+    prisma.challengeBest.findMany({ where: { userId }, select: { bestAttempts: true } }),
+  ]);
+
+  const domainScore = scoreFromBests(domainBests);
+  const globalScore = scoreFromBests(allBests);
+
+  await Promise.all([
+    setLeaderboardScore(domainSlug, userId, domainScore),
+    setLeaderboardScore(GLOBAL_DOMAIN_SLUG, userId, globalScore),
+  ]);
+
+  return domainScore;
 }
 
 /** Não reimplementa o goal() do frontend — confia no commandCount que ele manda
@@ -21,6 +35,10 @@ challengesRouter.post("/:domainSlug/:challengeSlug/complete", requireAuth, async
   const { domainSlug, challengeSlug } = req.params;
   const { commandCount, trilha } = req.body ?? {};
 
+  if (domainSlug === GLOBAL_DOMAIN_SLUG) {
+    res.status(400).json({ error: `'${GLOBAL_DOMAIN_SLUG}' é reservado pro ranking unificado, não é um domínio` });
+    return;
+  }
   if (!Number.isInteger(commandCount) || commandCount < 1) {
     res.status(400).json({ error: "commandCount precisa ser um inteiro positivo" });
     return;
@@ -57,7 +75,7 @@ challengesRouter.post("/:domainSlug/:challengeSlug/complete", requireAuth, async
     create: { userId, challengeId: challenge.id, bestAttempts: commandCount, timesCompleted: 1 },
   });
 
-  const score = await recomputeScore(userId, domain.id, domain.slug);
+  const score = await recomputeScores(userId, domain.id, domain.slug);
 
   res.json({ bestAttempts: best.bestAttempts, timesCompleted: best.timesCompleted, score });
 });

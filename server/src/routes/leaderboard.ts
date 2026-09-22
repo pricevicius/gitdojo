@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { getLeaderboard, getLeaderboardRank } from "../redis.js";
+import { GLOBAL_DOMAIN_SLUG, getLeaderboard, getLeaderboardRank } from "../redis.js";
 import { requireAuth, type AuthedRequest } from "../middleware/requireAuth.js";
 
 export const leaderboardRouter = Router();
@@ -43,17 +43,23 @@ leaderboardRouter.get("/me/stats", requireAuth, async (req: AuthedRequest, res) 
     return;
   }
 
-  const domain = await prisma.domain.findUnique({ where: { slug: domainSlug } });
-  if (!domain) {
-    res.json({ domain: domainSlug, rank: null, score: 0, bests: [] });
-    return;
+  const userId = req.userId!;
+  const isGlobal = domainSlug === GLOBAL_DOMAIN_SLUG;
+
+  let domainId: string | undefined;
+  if (!isGlobal) {
+    const domain = await prisma.domain.findUnique({ where: { slug: domainSlug } });
+    if (!domain) {
+      res.json({ domain: domainSlug, rank: null, score: 0, bests: [] });
+      return;
+    }
+    domainId = domain.id;
   }
 
-  const userId = req.userId!;
   const [bests, rank] = await Promise.all([
     prisma.challengeBest.findMany({
-      where: { userId, challenge: { domainId: domain.id } },
-      include: { challenge: { select: { slug: true } } },
+      where: { userId, ...(domainId ? { challenge: { domainId } } : {}) },
+      include: { challenge: { select: { slug: true, domain: { select: { slug: true } } } } },
     }),
     getLeaderboardRank(domainSlug, userId),
   ]);
@@ -65,6 +71,7 @@ leaderboardRouter.get("/me/stats", requireAuth, async (req: AuthedRequest, res) 
     rank,
     score,
     bests: bests.map((b) => ({
+      domain: b.challenge.domain.slug,
       challengeSlug: b.challenge.slug,
       bestAttempts: b.bestAttempts,
       timesCompleted: b.timesCompleted,

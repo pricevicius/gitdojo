@@ -2,6 +2,10 @@ import { Redis } from "ioredis";
 
 export const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379");
 
+/** Slug reservado pro ranking unificado (soma de todos os domínios de um usuário) —
+ * não é um Domain de verdade no Postgres, só uma chave a mais no Redis. */
+export const GLOBAL_DOMAIN_SLUG = "global";
+
 function leaderboardKey(domainSlug: string): string {
   return `leaderboard:${domainSlug}`;
 }

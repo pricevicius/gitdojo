@@ -21,10 +21,13 @@ Decisões já fechadas com o usuário nesta conversa:
 - **Métrica**: número de comandos até resolver o desafio (menos = melhor) — decidido
   antes da virada pra backend, continua valendo.
 
-Esta primeira fase entrega a **infraestrutura do ranking para a trilha de git que já
-existe** — não implementa motores de SQL/Java. O schema, porém, já modela um conceito
-de "domínio" (`git`, e no futuro `sql`, `java`...) desde o início, para não precisar de
-migração destrutiva quando o Dojo crescer.
+Esta primeira fase entrega a **infraestrutura do ranking para os dojos que já existem**
+(git e wp-cli) — não implementa motores novos (SQL/Java/etc). O schema já modela um
+conceito de "domínio" desde o início, e por isso o ranking sai pronto pros dois dojos
+atuais, não só git: `RankingPanel`/`completeChallenge` recebem `domain` a partir de
+`dojo.domainSlug` (ver `src/dojo/types.ts`), que já é dinâmico desde #21/#22 — um dojo
+novo (ex: MySQL) só precisa existir em `src/dojo/registry.ts` e ganhar uma linha no seed
+de `Domain` (`server/prisma/seed.ts`) pra herdar ranking de graça, sem tocar no backend.
 
 ## O que muda
 

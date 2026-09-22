@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import {
   ApiError,
+  GLOBAL_DOMAIN,
   getLeaderboard,
   getMyStats,
-  isRankingEnabled,
   type AuthUser,
   type LeaderboardEntry,
 } from "../api/client";
 
 interface Props {
   domain: string;
+  dojoLabel: string;
   user: AuthUser | null;
   onRequestLogin: () => void;
   onLogout: () => void;
@@ -17,17 +18,19 @@ interface Props {
   refreshToken: number;
 }
 
-export default function RankingPanel({ domain, user, onRequestLogin, onLogout, refreshToken }: Props) {
+export default function RankingPanel({ domain, dojoLabel, user, onRequestLogin, onLogout, refreshToken }: Props) {
+  const [scope, setScope] = useState<"domain" | "global">("domain");
+  const effectiveDomain = scope === "global" ? GLOBAL_DOMAIN : domain;
+
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [myScore, setMyScore] = useState<number | null>(null);
   const [myRank, setMyRank] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isRankingEnabled()) return;
     let cancelled = false;
 
-    getLeaderboard(domain)
+    getLeaderboard(effectiveDomain)
       .then((res) => {
         if (!cancelled) setEntries(res.entries);
       })
@@ -36,7 +39,7 @@ export default function RankingPanel({ domain, user, onRequestLogin, onLogout, r
       });
 
     if (user) {
-      getMyStats(domain)
+      getMyStats(effectiveDomain)
         .then((res) => {
           if (!cancelled) {
             setMyScore(res.score);
@@ -54,20 +57,28 @@ export default function RankingPanel({ domain, user, onRequestLogin, onLogout, r
     return () => {
       cancelled = true;
     };
-  }, [domain, user, refreshToken]);
-
-  if (!isRankingEnabled()) {
-    return (
-      <div className="ranking-panel">
-        <h2>🏆 Ranking</h2>
-        <p className="ranking-empty">Ranking indisponível nesta instância (sem backend configurado).</p>
-      </div>
-    );
-  }
+  }, [effectiveDomain, user, refreshToken]);
 
   return (
     <div className="ranking-panel">
       <h2>🏆 Ranking</h2>
+
+      <div className="ranking-scope">
+        <button
+          type="button"
+          className={scope === "domain" ? "ranking-scope-btn active" : "ranking-scope-btn"}
+          onClick={() => setScope("domain")}
+        >
+          {dojoLabel}
+        </button>
+        <button
+          type="button"
+          className={scope === "global" ? "ranking-scope-btn active" : "ranking-scope-btn"}
+          onClick={() => setScope("global")}
+        >
+          Geral (todos os dojos)
+        </button>
+      </div>
 
       {!user ? (
         <div className="ranking-cta">

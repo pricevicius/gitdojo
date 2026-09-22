@@ -332,36 +332,42 @@ export default function App({ forcedDojoSlug }: AppProps = {}) {
           />
         </section>
         <aside className="app-sidebar">
-          <div className="sidebar-tabs">
-            <button
-              type="button"
-              className={sidebarTab === "dictionary" ? "sidebar-tab active" : "sidebar-tab"}
-              onClick={() => setSidebarTab("dictionary")}
-            >
-              📖 Dicionário
-            </button>
-            <button
-              type="button"
-              className={sidebarTab === "ranking" ? "sidebar-tab active" : "sidebar-tab"}
-              onClick={() => setSidebarTab("ranking")}
-            >
-              🏆 Ranking
-            </button>
-          </div>
-          {sidebarTab === "dictionary" ? (
+          {/* Sem VITE_API_URL (build estático puro, ex. Cloudflare Pages hoje) o
+              ranking não faz parte da stack — nem a aba aparece, não é só um estado
+              desabilitado. */}
+          {isRankingEnabled() && (
+            <div className="sidebar-tabs">
+              <button
+                type="button"
+                className={sidebarTab === "dictionary" ? "sidebar-tab active" : "sidebar-tab"}
+                onClick={() => setSidebarTab("dictionary")}
+              >
+                📖 Dicionário
+              </button>
+              <button
+                type="button"
+                className={sidebarTab === "ranking" ? "sidebar-tab active" : "sidebar-tab"}
+                onClick={() => setSidebarTab("ranking")}
+              >
+                🏆 Ranking
+              </button>
+            </div>
+          )}
+          {sidebarTab === "ranking" && isRankingEnabled() ? (
+            <RankingPanel
+              domain={dojo.domainSlug}
+              dojoLabel={dojo.label}
+              user={user}
+              onRequestLogin={() => setAuthModalOpen(true)}
+              onLogout={handleLogout}
+              refreshToken={rankingRefresh}
+            />
+          ) : (
             <Dictionary
               dictionary={dojo.dictionary}
               categories={dojo.trilhasOrder}
               unlocked={unlocked}
               currentTrilha={challenge.trilha}
-            />
-          ) : (
-            <RankingPanel
-              domain={dojo.domainSlug}
-              user={user}
-              onRequestLogin={() => setAuthModalOpen(true)}
-              onLogout={handleLogout}
-              refreshToken={rankingRefresh}
             />
           )}
         </aside>

@@ -64,8 +64,9 @@ npx tsc --noEmit   # type-check sem gerar arquivos
 
 ## Ranking (opcional, precisa de backend)
 
-Sem nada configurado, o dojo continua 100% estático — o ranking só some (mostra um CTA
-avisando que está indisponível). Pra rodar o ranking localmente:
+Sem nada configurado, o dojo continua 100% estático — a aba de ranking nem aparece na
+sidebar (só o dicionário), porque backend não faz parte dessa stack. Pra rodar o
+ranking localmente:
 
 ```bash
 docker compose up -d postgres redis   # sobe só os bancos

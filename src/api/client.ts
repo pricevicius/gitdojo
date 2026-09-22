@@ -7,6 +7,10 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL as string | undefined;
 
+/** Pseudo-domínio reservado no backend pro ranking unificado (soma de todos os dojos
+ * que o usuário já jogou) — bate com GLOBAL_DOMAIN_SLUG em server/src/redis.ts. */
+export const GLOBAL_DOMAIN = "global";
+
 export class ApiError extends Error {
   status: number;
 
@@ -97,7 +101,7 @@ export interface MyStats {
   domain: string;
   rank: number | null;
   score: number;
-  bests: { challengeSlug: string; bestAttempts: number; timesCompleted: number }[];
+  bests: { domain: string; challengeSlug: string; bestAttempts: number; timesCompleted: number }[];
 }
 
 export function getMyStats(domain: string): Promise<MyStats> {

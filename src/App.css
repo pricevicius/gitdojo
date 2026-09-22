@@ -628,6 +628,25 @@
 .ranking-panel h2 {
   margin: 0 0 8px;
 }
+.ranking-scope {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ranking-scope-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ranking-scope-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
 .ranking-empty {
   color: var(--text-dim);
   font-size: 13px;
