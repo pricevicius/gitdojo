@@ -16,6 +16,10 @@ describe("resolveRoute", () => {
     expect(resolveRoute("wpcli.odojo.com.br", DOJOS)).toEqual({ view: "dojo", slug: "wp-cli" });
   });
 
+  it("abre o dojo de Claude Code em claude.odojo.com.br", () => {
+    expect(resolveRoute("claude.odojo.com.br", DOJOS)).toEqual({ view: "dojo", slug: "claude-code" });
+  });
+
   it("cai no primeiro dojo em hostnames desconhecidos (localhost, preview)", () => {
     expect(resolveRoute("localhost", DOJOS)).toEqual({ view: "dojo", slug: DOJOS[0].domainSlug });
     expect(resolveRoute("gitdojo.pages.dev", DOJOS)).toEqual({ view: "dojo", slug: DOJOS[0].domainSlug });
