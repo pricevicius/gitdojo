@@ -1,7 +1,7 @@
 # 🥋 Dojo
 
 Treine comandos de linha de comando praticando de verdade — não decorando.
-Hoje: **git** e **wp-cli**. Amanhã, o que a comunidade trouxer.
+Hoje: **git**, **wp-cli** e **Claude Code**. Amanhã, o que a comunidade trouxer.
 
 → https://odojo.com.br
 
