@@ -88,8 +88,6 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
-  text-decoration: none;
-  color: var(--text);
   transition: border-color 0.15s;
 }
 .landing-dojo-card:hover {
@@ -107,10 +105,28 @@
   opacity: 0.6;
   cursor: default;
 }
+.landing-dojo-card-link {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+}
 .landing-dojo-tagline {
   margin-top: 8px !important;
   font-style: italic;
   color: var(--accent) !important;
+}
+.landing-dojo-contributor {
+  margin-top: 12px !important;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px !important;
+}
+.landing-dojo-contributor a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.landing-dojo-contributor a:hover {
+  text-decoration: underline;
 }
 
 .landing-link {
