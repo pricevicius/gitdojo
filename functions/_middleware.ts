@@ -45,6 +45,13 @@ const VARIANTS: Record<string, SeoVariant> = {
     image: "/og/claude.png",
     imageAlt: "Dojo de Claude Code",
   },
+  java: {
+    title: "Dojo de Java — orientação a objetos de verdade no navegador",
+    description:
+      "Resolva desafios reais de Java num jshell simulado — classes, herança, polimorfismo. Erre à vontade: não tem compilador de verdade pra quebrar.",
+    image: "/og/java.png",
+    imageAlt: "Dojo de Java",
+  },
 };
 
 function variantFor(hostname: string): { variant: SeoVariant; canonical: string } {

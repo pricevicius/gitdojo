@@ -20,6 +20,10 @@ describe("resolveRoute", () => {
     expect(resolveRoute("claude.odojo.com.br", DOJOS)).toEqual({ view: "dojo", slug: "claude-code" });
   });
 
+  it("abre o dojo de Java em java.odojo.com.br", () => {
+    expect(resolveRoute("java.odojo.com.br", DOJOS)).toEqual({ view: "dojo", slug: "java" });
+  });
+
   it("cai no primeiro dojo em hostnames desconhecidos (localhost, preview)", () => {
     expect(resolveRoute("localhost", DOJOS)).toEqual({ view: "dojo", slug: DOJOS[0].domainSlug });
     expect(resolveRoute("gitdojo.pages.dev", DOJOS)).toEqual({ view: "dojo", slug: DOJOS[0].domainSlug });
