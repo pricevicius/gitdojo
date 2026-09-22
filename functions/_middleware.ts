@@ -38,6 +38,13 @@ const VARIANTS: Record<string, SeoVariant> = {
     image: "/og/wpcli.png",
     imageAlt: "Dojo de WP-CLI",
   },
+  claude: {
+    title: "Dojo de Claude Code — pratique o CLI de verdade no navegador",
+    description:
+      "Resolva desafios reais do Claude Code — contexto, permissões, subagents, MCP, automação — num terminal simulado. Erre à vontade: não tem sessão de verdade pra quebrar.",
+    image: "/og/claude.png",
+    imageAlt: "Dojo de Claude Code",
+  },
 };
 
 function variantFor(hostname: string): { variant: SeoVariant; canonical: string } {

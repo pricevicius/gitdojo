@@ -3,11 +3,13 @@
 ## Onde roda
 
 O projeto é um SPA estático (Vite/React), sem backend por enquanto. Hospedado no
-**Cloudflare Pages**, projeto `gitdojo`, com 3 domínios apontando pro mesmo deploy:
+**Cloudflare Pages**, projeto `gitdojo`, com domínios apontando pro mesmo deploy:
 
 - `odojo.com.br` — home, explica o projeto e linka pros dojos.
 - `git.odojo.com.br` — abre direto o dojo de git.
 - `wpcli.odojo.com.br` — abre direto o dojo de wp-cli.
+- `claude.odojo.com.br` — abre direto o dojo de Claude Code. **Ainda não criado no
+  Cloudflare** (ver "Pendente" abaixo) — até lá o dojo só existe em dev/preview.
 
 É **um único build/deploy**: o app decide o que renderizar olhando
 `window.location.hostname` no client-side (ver `docs/PLANO_MULTI_DOJO.md`). Não existe
@@ -23,7 +25,7 @@ Twitter) não executa JS, só lê o HTML puro. Isso é resolvido por
 Function**: intercepta a resposta HTML antes de sair e reescreve `<title>`,
 `description` e as tags `og:*`/`twitter:*` de acordo com o hostname da request, usando
 `HTMLRewriter` (API nativa do Workers runtime, sem SSR de verdade). As imagens de
-preview (1200×630) ficam em `public/og/{root,git,wpcli}.png`. Host desconhecido
+preview (1200×630) ficam em `public/og/{root,git,wpcli,claude}.png`. Host desconhecido
 (preview do Cloudflare Pages, IP) cai no conteúdo genérico do `index.html`.
 
 `functions/` é convenção do Cloudflare Pages — o `wrangler pages deploy` detecta e
@@ -74,6 +76,24 @@ dar ao mantenedor o que falta pra fazer isso sem ida e volta. O template
 3. Token de API: criado manualmente no dashboard Cloudflare (My Profile → API Tokens),
    escopo mínimo: `Account / Cloudflare Pages / Edit` + `Zone / DNS / Edit` restrito à
    zona `odojo.com.br`. Sem esse token não é possível reproduzir os passos acima.
+
+## Pendente: subdomínio do Claude Code
+
+O dojo `claude-code` já está no código (visível em dev/preview) mas falta o passo manual
+de infra pra `claude.odojo.com.br` responder — mesmo passo 2 de "Setup feito" acima,
+repetido pro domínio novo:
+
+```bash
+curl -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/gitdojo/domains" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"claude.odojo.com.br"}'
+```
+
+Isso cria o custom domain no projeto Pages; o DNS (CNAME pra `gitdojo.pages.dev`) costuma
+ser criado junto quando a zona já está no mesmo Cloudflare account, mas vale conferir em
+`DNS → Records` da zona `odojo.com.br` depois. Precisa do token com o mesmo escopo
+descrito em "Setup feito" (`Account / Cloudflare Pages / Edit` + `Zone / DNS / Edit`).
 
 ## Como fazer deploy manual (sem esperar o CI)
 
